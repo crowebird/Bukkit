@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Server;
@@ -15,6 +14,7 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.config.Configuration;
 
 import com.crowebird.bukkit.util.Config;
 import com.nijiko.permissions.PermissionHandler;
@@ -43,35 +43,47 @@ public class AntiGrief extends JavaPlugin {
 
 		ArrayList<String> clevel = new ArrayList<String>();
 		clevel.add("lowest");
-		ArrayList<String> cdefault = new ArrayList<String>();
-		cdefault.add("antigrief.block.*");
-		cdefault.add("antigrief.entity.*");
-		cdefault.add("antigrief.player.*");
-		cdefault.add("antigrief.vehicle.*");
+		ArrayList<String> cignore = new ArrayList<String>();
+		cignore.add("");
 		
 		AntiGrief.default_config.put("level", clevel);
-		AntiGrief.default_config.put("default", cdefault);
+		AntiGrief.default_config.put("ignore", cignore);
 		
 		AntiGrief.pdf = desc;
-		
-		registerEvents();
 	}
 	
 	public void onEnable() {
 		setupPermissions();
+		
 		try {
-			config = Config.read("AntiGrief", "config.yml");
-		} catch (IOException ex) {
-			Config.create("AntiGrief", "config.yml", this.config);
-			try {
-				config = Config.read("AntiGrief", "config.yml");
-			} catch (Exception ex1) {
-				config = AntiGrief.default_config;
-				AntiGrief.log.info(AntiGrief.pdf.getName() + " - using default values!");
-			}
+			config = readConfig(Config.read(getDataFolder().toString(), "config.yml"));
+		} catch (Exception ex) {
+			AntiGrief.log.info(ex.toString());
+			if (ex instanceof IOException)
+				Config.create(getDataFolder().toString(), "config.yml", AntiGrief.default_config);
+			config = AntiGrief.default_config;
+			AntiGrief.log.info(AntiGrief.pdf.getName() + " - using default values!");
 		}
 		
 		AntiGrief.log.info(AntiGrief.pdf.getName() + " version " + AntiGrief.pdf.getVersion() + " was enabled!");
+		
+		registerEvents();
+	}
+	
+	private HashMap<String, ArrayList<String>> readConfig(Configuration config_) throws Exception {
+		config_.load();
+
+		HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
+		
+		ArrayList<String> clevel = (ArrayList<String>)config_.getStringList("level", null);
+		ArrayList<String> cignore = (ArrayList<String>)config_.getStringList("ignore", null);
+		
+		if (clevel.size() == 0 || cignore.size() == 0) throw new IOException("Invalid Configuration File!");
+		
+		hm.put("level", clevel);
+		hm.put("ignore", cignore);
+		
+		return hm;
 	}
 	
 	public void onDisable() {
@@ -89,13 +101,14 @@ public class AntiGrief extends JavaPlugin {
 		else if (level.contains("high")) compile_level = Event.Priority.High;
 		else if (level.contains("highest")) compile_level = Event.Priority.Highest;
 		
+		AntiGrief.log.info(AntiGrief.pdf.getName() + " is running on the " + compile_level.toString() + " priority level.");
+		
 		pm.registerEvent(Event.Type.BLOCK_DAMAGED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_INTERACT, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_IGNITE, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.PLAYER_ITEM, playerListener, compile_level, this);
 		
-		//pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, compile_level, this);
 		pm.registerEvent(Event.Type.ENTITY_TARGET, entityListener, compile_level, this);
 		
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, compile_level, this);
@@ -105,16 +118,15 @@ public class AntiGrief extends JavaPlugin {
 	}
 	
 	protected boolean canBuild(Player player_, String node_) {
-		//If we don't have player information, we can't pass judgement
 		if (player_ == null) return true;
 		String group = AntiGrief.permissions.getGroup(player_.getName());
-		if (group != null)
-			 if (!AntiGrief.permissions.canGroupBuild(group))
-				 AntiGrief.permissions.
-				 
-				 this.config.get("level").
-		boolean sub_permission = !AntiGrief.permissions.has(player_, node_);
-		return (group != null && AntiGrief.permissions.canGroupBuild(group)) || sub_permission;
+		boolean canBuild = true;
+		if (group != null) {
+			canBuild = AntiGrief.permissions.canGroupBuild(group);
+			if (!canBuild && this.config.get("ignore").contains(node_))
+				canBuild = true;
+		}
+		return canBuild && (!AntiGrief.permissions.has(player_, node_) || AntiGrief.permissions.has(player_, "antigrief.admin"));
 	}
 	
 	//Nijikokun Permissions Handle:

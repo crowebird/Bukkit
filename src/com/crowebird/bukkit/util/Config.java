@@ -17,37 +17,38 @@ public class Config {
 
 	protected static final Logger log = Logger.getLogger("Minecraft");
 	
-	public static HashMap<String, ArrayList<String>> read(String path_, String file_) throws IOException {
-		File yml = new File(path_ + File.pathSeparator + file_);
-		if (!yml.exists()) throw new IOException();
-		
-		HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
-	
-		
-		return hm;
+	public static Configuration read(String path_, String file_) throws Exception {
+		File yml = new File(path_ + File.separator + file_);
+		if (!yml.exists()) throw new IOException("File does not exist!");
+
+		return new Configuration(yml);
 	}
 	
 	public static void create(String path_, String file_, HashMap<String, ArrayList<String>> contents_) {
 		try {
-			new File(path_).mkdir();
-			new File(path_ + File.pathSeparator + file_).createNewFile();
-			BufferedWriter out = new BufferedWriter(new FileWriter(path_ + File.pathSeparator + file_));
+			File f = new File(path_ + File.separator + file_);
+			if (!f.exists()) {
+				new File(path_).mkdir();
+				f.createNewFile();
+			}
 			
+			BufferedWriter out = new BufferedWriter(new FileWriter(path_ + File.separator + file_));
 			Iterator<Entry<String, ArrayList<String>>> i = contents_.entrySet().iterator();
 			while(i.hasNext()) {
 				Entry<String, ArrayList<String>> e = i.next();
-				out.write(e.getKey());
+				out.write(e.getKey() + ":");
 				for (String line : e.getValue()) {
 					out.newLine();
-					out.write("- " + line);
+					out.write("- '" + line + "'");
 				}
 				out.newLine();
 			}
 			
 			out.flush();
 			out.close();
+			log.log(Level.INFO, "File created: " + path_ + File.separator + file_ + "!");
 		} catch (Exception ex) {
-			log.log(Level.WARNING, "Unable to create " + path_ + File.pathSeparator + file_ + "!");
+			log.log(Level.WARNING, "Unable to create " + path_ + File.separator + file_ + "!");
 		}
 	}
 	
