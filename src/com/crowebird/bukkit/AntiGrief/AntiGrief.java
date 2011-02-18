@@ -57,15 +57,15 @@ public class AntiGrief extends JavaPlugin {
 		caffects.add("block.ignite");
 		
 		caffects.add("entity.creeper");
-		caffects.add("entity.damage.block_explosion");
-		caffects.add("entity.damage.contact");
-		caffects.add("entity.damage.drowning");
-		caffects.add("entity.damage.entity_attack");
-		caffects.add("entity.damage.entity_explosion");
-		caffects.add("entity.damage.fire");
-		caffects.add("entity.damage.fire_tick");
-		caffects.add("entity.damage.lava");
-		caffects.add("entity.damage.suffocation");
+		//caffects.add("entity.damage.block_explosion");
+		//caffects.add("entity.damage.contact");
+		//caffects.add("entity.damage.drowning");
+		//caffects.add("entity.damage.entity_attack");
+		//caffects.add("entity.damage.entity_explosion");
+		//caffects.add("entity.damage.fire");
+		//caffects.add("entity.damage.fire_tick");
+		//caffects.add("entity.damage.lava");
+		//caffects.add("entity.damage.suffocation");
 		
 		caffects.add("player.item");
 		
