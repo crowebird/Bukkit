@@ -1,9 +1,14 @@
+/**
+ * AntiGrief
+ * Created by Michael Crowe (crowebird)
+ * 
+ * Feel free to use and learn, but give credit :D
+ */
+
 package com.crowebird.bukkit.AntiGrief;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.logging.Logger;
 
 import org.bukkit.Server;
@@ -14,13 +19,14 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.config.Configuration;
 
 import com.crowebird.bukkit.util.Config;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
 
 public class AntiGrief extends JavaPlugin {
+	
+	//Bukkit 341+
 
 	public static PermissionHandler permissions = null;
 	public static PluginDescriptionFile pdf;
@@ -33,8 +39,8 @@ public class AntiGrief extends JavaPlugin {
 	//private AntiGriefInventoryListener inventoryListener = new AntiGriefInventoryListener(this);
 	private AntiGriefVehicleListener vehicleListener = new AntiGriefVehicleListener(this);
 	
-	protected HashMap<String, ArrayList<String>> config = new HashMap<String, ArrayList<String>>();
-	private static final HashMap<String, ArrayList<String>> default_config = new HashMap<String, ArrayList<String>>();
+	protected Config.type config = new Config.type();
+	private static final Config.type default_config = new Config.type();
 	
 	public AntiGrief(PluginLoader pluginLoader, Server instance,
 			PluginDescriptionFile desc, File folder, File plugin,
@@ -43,11 +49,35 @@ public class AntiGrief extends JavaPlugin {
 
 		ArrayList<String> clevel = new ArrayList<String>();
 		clevel.add("lowest");
-		ArrayList<String> cignore = new ArrayList<String>();
-		cignore.add("");
+		
+		ArrayList<String> caffects = new ArrayList<String>();
+		caffects.add("block.damage");
+		caffects.add("block.place");
+		caffects.add("block.interact");
+		caffects.add("block.ignite");
+		
+		caffects.add("entity.creeper");
+		caffects.add("entity.damage.block_explosion");
+		caffects.add("entity.damage.contact");
+		caffects.add("entity.damage.drowning");
+		caffects.add("entity.damage.entity_attack");
+		caffects.add("entity.damage.entity_explosion");
+		caffects.add("entity.damage.fire");
+		caffects.add("entity.damage.fire_tick");
+		caffects.add("entity.damage.lava");
+		caffects.add("entity.damage.suffocation");
+		
+		caffects.add("player.item");
+		
+		caffects.add("vehicle.use");
+		caffects.add("vehicle.move");
+		
+		ArrayList<String> cinteract = new ArrayList<String>();
+		cinteract.add("64");
 		
 		AntiGrief.default_config.put("level", clevel);
-		AntiGrief.default_config.put("ignore", cignore);
+		AntiGrief.default_config.put("affects", caffects);
+		AntiGrief.default_config.put("canInteract", cinteract);
 		
 		AntiGrief.pdf = desc;
 	}
@@ -55,35 +85,11 @@ public class AntiGrief extends JavaPlugin {
 	public void onEnable() {
 		setupPermissions();
 		
-		try {
-			config = readConfig(Config.read(getDataFolder().toString(), "config.yml"));
-		} catch (Exception ex) {
-			AntiGrief.log.info(ex.toString());
-			if (ex instanceof IOException)
-				Config.create(getDataFolder().toString(), "config.yml", AntiGrief.default_config);
-			config = AntiGrief.default_config;
-			AntiGrief.log.info(AntiGrief.pdf.getName() + " - using default values!");
-		}
-		
-		AntiGrief.log.info(AntiGrief.pdf.getName() + " version " + AntiGrief.pdf.getVersion() + " was enabled!");
+		config = Config.getConfig(getDataFolder().toString(), "config.yml", AntiGrief.default_config);
 		
 		registerEvents();
-	}
-	
-	private HashMap<String, ArrayList<String>> readConfig(Configuration config_) throws Exception {
-		config_.load();
-
-		HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
 		
-		ArrayList<String> clevel = (ArrayList<String>)config_.getStringList("level", null);
-		ArrayList<String> cignore = (ArrayList<String>)config_.getStringList("ignore", null);
-		
-		if (clevel.size() == 0 || cignore.size() == 0) throw new IOException("Invalid Configuration File!");
-		
-		hm.put("level", clevel);
-		hm.put("ignore", cignore);
-		
-		return hm;
+		AntiGrief.log.info(AntiGrief.pdf.getName() + " version " + AntiGrief.pdf.getVersion() + " was enabled!");
 	}
 	
 	public void onDisable() {
@@ -107,11 +113,12 @@ public class AntiGrief extends JavaPlugin {
 		pm.registerEvent(Event.Type.BLOCK_PLACED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_INTERACT, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_IGNITE, blockListener, compile_level, this);
-		pm.registerEvent(Event.Type.PLAYER_ITEM, playerListener, compile_level, this);
 		
 		pm.registerEvent(Event.Type.ENTITY_TARGET, entityListener, compile_level, this);
+		pm.registerEvent(Event.Type.ENTITY_DAMAGED, entityListener, compile_level, this);
 		
-		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, compile_level, this);
+		pm.registerEvent(Event.Type.PLAYER_ITEM, playerListener, compile_level, this);	
+		
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, compile_level, this);
@@ -123,10 +130,24 @@ public class AntiGrief extends JavaPlugin {
 		boolean canBuild = true;
 		if (group != null) {
 			canBuild = AntiGrief.permissions.canGroupBuild(group);
-			if (!canBuild && this.config.get("ignore").contains(node_))
+			if (!canBuild && !this.config.get("affects").contains(node_))
 				canBuild = true;
 		}
-		return canBuild && (!AntiGrief.permissions.has(player_, node_) || AntiGrief.permissions.has(player_, "antigrief.admin"));
+		return (
+			(canBuild && !AntiGrief.permissions.has(player_, "antigrief.prevent." + node_)) ||
+			(!canBuild && AntiGrief.permissions.has(player_, "antigrief.allow." + node_))
+		) || AntiGrief.permissions.has(player_, "antigrief.admin");
+	}
+	
+	protected boolean allowInteract(int id_) {
+		return contains("canInteract", id_ + "");
+	}
+	
+	private boolean contains(String key_, String value_) {
+		ArrayList<String> values = this.config.get(key_);
+		if (values != null)
+			return values.contains(value_);
+		return false;
 	}
 	
 	//Nijikokun Permissions Handle:
