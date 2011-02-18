@@ -12,7 +12,7 @@ public class AntiGriefPlayerListener extends PlayerListener {
 	}
 	
 	public void onPlayerItem(PlayerItemEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "antigrief.player.item"))
+		if (!this.plugin.canBuild(event_.getPlayer(), "player.item"))
 			event_.setCancelled(true);
 	}
 }

@@ -1,5 +1,6 @@
 package com.crowebird.bukkit.AntiGrief;
 
+import org.bukkit.block.BlockDamageLevel;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
@@ -16,29 +17,34 @@ public class AntiGriefBlockListener extends BlockListener {
 		this.plugin = plugin_;
 	}
 	
-	public void onBlockDamage(BlockDamageEvent event_) {		
-		if (!this.plugin.canBuild(event_.getPlayer(), "antigrief.block.damage"))
+	public void onBlockDamage(BlockDamageEvent event_) {
+		if (this.plugin.allowInteract(event_.getBlock().getType().getId())
+				&& event_.getDamageLevel() == BlockDamageLevel.STARTED)
+			return;
+		if (!this.plugin.canBuild(event_.getPlayer(), "block.damage"))
 			event_.setCancelled(true);
 	}
 	
 	public void onBlockPlace(BlockPlaceEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "antigrief.block.place"))
+		if (!this.plugin.canBuild(event_.getPlayer(), "block.place"))
 			event_.setCancelled(true);
 	}
 	
 	public void onBlockInteract(BlockInteractEvent event_) {
-		if (event_.isPlayer())
-			if (!this.plugin.canBuild((Player)event_.getEntity(), "antigrief.block.interact"))
+		if (event_.isPlayer()) {
+			if (this.plugin.allowInteract(event_.getBlock().getType().getId())) return;
+			if (!this.plugin.canBuild((Player)event_.getEntity(), "block.interact"))
 				event_.setCancelled(true);
+		}
 	}
 	
 	public void onBlockBreak(BlockBreakEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "antigrief.block.damage"))
+		if (!this.plugin.canBuild(event_.getPlayer(), "block.damage"))
 			event_.setCancelled(true);
 	}
 	
 	public void onBlockIgnite(BlockIgniteEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "antigrief.block.ignite"))
+		if (!this.plugin.canBuild(event_.getPlayer(), "block.ignite"))
 			event_.setCancelled(true);
 	}
 }
