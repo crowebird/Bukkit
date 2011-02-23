@@ -7,46 +7,51 @@
 
 package com.crowebird.bukkit.AntiGrief;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import org.bukkit.Server;
+import org.anjocaido.groupmanager.GroupManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
-import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.crowebird.bukkit.util.Config;
-import com.nijiko.permissions.PermissionHandler;
-import com.nijikokun.bukkit.Permissions.Permissions;
 
 public class AntiGrief extends JavaPlugin {
 	
-	//Bukkit 341+
+	//Bukkit 432+ //Permissions 2.1
 
-	public static PermissionHandler permissions = null;
+	public static GroupManager gm;
 	public static PluginDescriptionFile pdf;
 	
-	protected static final Logger log = Logger.getLogger("Minecraft");
+	protected static Logger log = Logger.getLogger("Minecraft");
 	
-	private AntiGriefBlockListener blockListener = new AntiGriefBlockListener(this);
-	private AntiGriefPlayerListener playerListener = new AntiGriefPlayerListener(this);
-	private AntiGriefEntityListener entityListener = new AntiGriefEntityListener(this);
+	private AntiGriefBlockListener blockListener;
+	private AntiGriefPlayerListener playerListener;
+	private AntiGriefEntityListener entityListener;
 	//private AntiGriefInventoryListener inventoryListener = new AntiGriefInventoryListener(this);
-	private AntiGriefVehicleListener vehicleListener = new AntiGriefVehicleListener(this);
+	private AntiGriefVehicleListener vehicleListener;
 	
-	protected Config.type config = new Config.type();
-	private static final Config.type default_config = new Config.type();
+	protected Config.type config;
+	private static Config.type default_config;
 	
-	public AntiGrief(PluginLoader pluginLoader, Server instance,
-			PluginDescriptionFile desc, File folder, File plugin,
-			ClassLoader cLoader) {
-		super(pluginLoader, instance, desc, folder, plugin, cLoader);
-
+	public AntiGrief() {
+		AntiGrief.gm = null;
+		AntiGrief.log = Logger.getLogger("Minecraft");
+		
+		blockListener = new AntiGriefBlockListener(this);
+		playerListener = new AntiGriefPlayerListener(this);
+		entityListener = new AntiGriefEntityListener(this);
+		//inventoryListener = new AntiGriefInventoryListener(this);
+		vehicleListener = new AntiGriefVehicleListener(this);
+		
+		config = new Config.type();
+		default_config = new Config.type();
+		
+		
 		ArrayList<String> clevel = new ArrayList<String>();
 		clevel.add("lowest");
 		
@@ -66,6 +71,7 @@ public class AntiGrief extends JavaPlugin {
 		//caffects.add("entity.damage.fire_tick");
 		//caffects.add("entity.damage.lava");
 		//caffects.add("entity.damage.suffocation");
+		//caffects.add("entity.damage.custom");
 		
 		caffects.add("player.item");
 		
@@ -78,12 +84,12 @@ public class AntiGrief extends JavaPlugin {
 		AntiGrief.default_config.put("level", clevel);
 		AntiGrief.default_config.put("affects", caffects);
 		AntiGrief.default_config.put("canInteract", cinteract);
-		
-		AntiGrief.pdf = desc;
 	}
 	
 	public void onEnable() {
-		setupPermissions();
+		AntiGrief.pdf = getDescription();
+		
+		if (!setupPermissions()) return;
 		
 		config = Config.getConfig(getDataFolder().toString(), "config.yml", AntiGrief.default_config);
 		
@@ -98,7 +104,6 @@ public class AntiGrief extends JavaPlugin {
 	
 	private void registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
-		
 		Event.Priority compile_level = Event.Priority.Lowest;
 		ArrayList<String> level = config.get("level");
 		if (level.contains("lowest")) compile_level = Event.Priority.Lowest;
@@ -126,17 +131,17 @@ public class AntiGrief extends JavaPlugin {
 	
 	protected boolean canBuild(Player player_, String node_) {
 		if (player_ == null) return true;
-		String group = AntiGrief.permissions.getGroup(player_.getName());
+		String group = AntiGrief.gm.getPermissionHandler().getGroup(player_.getName());
 		boolean canBuild = true;
 		if (group != null) {
-			canBuild = AntiGrief.permissions.canGroupBuild(group);
+			canBuild = AntiGrief.gm.getPermissionHandler().canGroupBuild(group);
 			if (!canBuild && !this.config.get("affects").contains(node_))
 				canBuild = true;
 		}
 		return (
-			(canBuild && !AntiGrief.permissions.has(player_, "antigrief.prevent." + node_)) ||
-			(!canBuild && AntiGrief.permissions.has(player_, "antigrief.allow." + node_))
-		) || AntiGrief.permissions.has(player_, "antigrief.admin");
+			(canBuild && !AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.prevent." + node_)) ||
+			(!canBuild && AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.allow." + node_))
+		) || AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.admin");
 	}
 	
 	protected boolean allowInteract(int id_) {
@@ -149,17 +154,17 @@ public class AntiGrief extends JavaPlugin {
 			return values.contains(value_);
 		return false;
 	}
-	
-	//Nijikokun Permissions Handle:
-	//We are checking the build parameter, so without permissions just disable AntiGrief.
-	private void setupPermissions() {
-		Plugin permissions = this.getServer().getPluginManager().getPlugin("Permissions");
-		if (AntiGrief.permissions == null) {
-			if (permissions != null) AntiGrief.permissions = ((Permissions)permissions).getHandler();
-			else {
-				log.info("Permission system not enabled. Disabling AntiGrief.");
-				this.getServer().getPluginManager().disablePlugin(this);
-			}
+
+	private boolean setupPermissions() {
+		Plugin permissions = this.getServer().getPluginManager().getPlugin("GroupManager");
+		if (permissions != null) {
+			if (!permissions.isEnabled()) this.getServer().getPluginManager().enablePlugin(permissions);
+			AntiGrief.gm = (GroupManager) permissions;
+			return true;
+		} else {
+			AntiGrief.log.severe(AntiGrief.pdf.getFullName() + " - GroupManager not enabled. Disabling.");
+			this.getServer().getPluginManager().disablePlugin(this);
+			return false;
 		}
 	}
 }

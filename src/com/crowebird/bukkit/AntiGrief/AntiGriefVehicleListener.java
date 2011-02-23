@@ -7,7 +7,6 @@ import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleListener;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
-import org.bukkit.util.Vector;
 
 public class AntiGriefVehicleListener extends VehicleListener {
 	
@@ -22,6 +21,7 @@ public class AntiGriefVehicleListener extends VehicleListener {
 		if (passenger instanceof Player) {
 			if (!this.plugin.canBuild((Player)passenger, "vehicle.use")) {
 				Vehicle vehicle = event_.getVehicle();
+				/*
 				Vector velocity = vehicle.getVelocity();
 				double vx = velocity.getX();
 				double vy = velocity.getY();
@@ -31,6 +31,7 @@ public class AntiGriefVehicleListener extends VehicleListener {
 					velocity.setY(0.0);
 					velocity.setZ(0.0);
 				}
+				*/
 				vehicle.eject();
 			}
 		}
@@ -40,10 +41,12 @@ public class AntiGriefVehicleListener extends VehicleListener {
 		Entity collisionEntity = event_.getEntity();
 		if (collisionEntity instanceof Player) {
 			if (!this.plugin.canBuild((Player)collisionEntity, "vehicle.move")) {
+				/*
 				Vector velocity = event_.getVehicle().getVelocity();
 				velocity.setX(0.0);
 				velocity.setY(0.0);
 				velocity.setZ(0.0);
+				*/
 				event_.setCancelled(true);
 				event_.setCollisionCancelled(true);
 			}
