@@ -22,7 +22,7 @@ import com.crowebird.bukkit.util.Config;
 
 public class AntiGrief extends JavaPlugin {
 	
-	//Bukkit 432+ //Permissions 2.1
+	//Bukkit 432+ //GroupManager 0.9e
 
 	public static GroupManager gm;
 	public static PluginDescriptionFile pdf;
