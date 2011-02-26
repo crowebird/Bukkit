@@ -3,10 +3,10 @@ package com.crowebird.bukkit.AntiGrief;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityTargetEvent;
-import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 
 public class AntiGriefEntityListener extends EntityListener {
 	private AntiGrief plugin;
@@ -27,9 +27,16 @@ public class AntiGriefEntityListener extends EntityListener {
 	
 	public void onEntityDamage(EntityDamageEvent event_) {
 		Entity entity = event_.getEntity();
-		DamageCause cause = event_.getCause();
+		if (event_ instanceof EntityDamageByEntityEvent) {
+			EntityDamageByEntityEvent edbe = (EntityDamageByEntityEvent) event_;
+			Entity damager = edbe.getDamager();
+			if (damager instanceof Player) {
+				if (!this.plugin.canBuild((Player)damager, "player.damage.cause"))
+					event_.setCancelled(true);
+			}
+		}
 		if (entity instanceof Player) {
-			if (!this.plugin.canBuild((Player)entity, "entity.damage." + cause.toString().toLowerCase()))
+			if (!this.plugin.canBuild((Player)entity, "player.damage.take." +  event_.getCause().toString().toLowerCase()))
 				event_.setCancelled(true);
 		}
 	}

@@ -13,8 +13,6 @@ import java.util.logging.Logger;
 
 import org.bukkit.util.config.Configuration;
 
-import com.crowebird.bukkit.AntiGrief.AntiGrief;
-
 public class Config {
 
 	protected static final Logger log = Logger.getLogger("Minecraft");
@@ -46,7 +44,6 @@ public class Config {
 		} catch (Exception ex) {
 			if (ex instanceof IOException)
 				Config.create(path_, file_, default_);
-			log.info(AntiGrief.pdf.getName() + " - using default values!");
 			return default_;
 		}
 	}

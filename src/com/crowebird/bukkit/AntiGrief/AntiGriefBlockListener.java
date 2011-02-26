@@ -21,8 +21,9 @@ public class AntiGriefBlockListener extends BlockListener {
 		if (this.plugin.allowInteract(event_.getBlock().getType().getId())
 				&& event_.getDamageLevel() == BlockDamageLevel.STARTED)
 			return;
-		if (!this.plugin.canBuild(event_.getPlayer(), "block.damage"))
+		if (!this.plugin.canBuild(event_.getPlayer(), "block.damage")) {
 			event_.setCancelled(true);
+		}
 	}
 	
 	public void onBlockPlace(BlockPlaceEvent event_) {

@@ -2,8 +2,8 @@ package com.crowebird.bukkit.AntiGrief;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Vehicle;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleListener;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
@@ -16,24 +16,19 @@ public class AntiGriefVehicleListener extends VehicleListener {
 		this.plugin = plugin_;
 	}
 	
+	public void onVehicleEnter(VehicleEnterEvent event_) {
+		Entity passenger = event_.getEntered();
+		if (passenger instanceof Player) {
+			if (!this.plugin.canBuild((Player)passenger, "vehicle.use"))
+				event_.setCancelled(true);
+		}
+	}
+	
 	public void onVehicleMove(VehicleMoveEvent event_) {
 		Entity passenger = event_.getVehicle().getPassenger();
 		if (passenger instanceof Player) {
-			if (!this.plugin.canBuild((Player)passenger, "vehicle.use")) {
-				Vehicle vehicle = event_.getVehicle();
-				/*
-				Vector velocity = vehicle.getVelocity();
-				double vx = velocity.getX();
-				double vy = velocity.getY();
-				double vz = velocity.getZ();
-				if (vx != 0 || vy != 0 || vz != 0) {
-					velocity.setX(0.0);
-					velocity.setY(0.0);
-					velocity.setZ(0.0);
-				}
-				*/
-				vehicle.eject();
-			}
+			if (!this.plugin.canBuild((Player)passenger, "vehicle.use"))
+				event_.getVehicle().eject();
 		}
 	}
 	
@@ -41,12 +36,6 @@ public class AntiGriefVehicleListener extends VehicleListener {
 		Entity collisionEntity = event_.getEntity();
 		if (collisionEntity instanceof Player) {
 			if (!this.plugin.canBuild((Player)collisionEntity, "vehicle.move")) {
-				/*
-				Vector velocity = event_.getVehicle().getVelocity();
-				velocity.setX(0.0);
-				velocity.setY(0.0);
-				velocity.setZ(0.0);
-				*/
 				event_.setCancelled(true);
 				event_.setCollisionCancelled(true);
 			}

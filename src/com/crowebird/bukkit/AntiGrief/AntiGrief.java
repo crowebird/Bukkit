@@ -22,7 +22,7 @@ import com.crowebird.bukkit.util.Config;
 
 public class AntiGrief extends JavaPlugin {
 	
-	//Bukkit 432+ //GroupManager 0.9e
+	//Bukkit 450+ //Bukkit 415+ //GroupManager 0.9e
 
 	public static GroupManager gm;
 	public static PluginDescriptionFile pdf;
@@ -73,6 +73,7 @@ public class AntiGrief extends JavaPlugin {
 		//caffects.add("entity.damage.suffocation");
 		//caffects.add("entity.damage.custom");
 		
+		caffects.add("player.damage.cause");
 		caffects.add("player.item");
 		
 		caffects.add("vehicle.use");
@@ -81,9 +82,12 @@ public class AntiGrief extends JavaPlugin {
 		ArrayList<String> cinteract = new ArrayList<String>();
 		cinteract.add("64");
 		
-		AntiGrief.default_config.put("level", clevel);
-		AntiGrief.default_config.put("affects", caffects);
-		AntiGrief.default_config.put("canInteract", cinteract);
+		ArrayList<String> citem = new ArrayList<String>();
+		
+		AntiGrief.default_config.put("priorityLevel", clevel);
+		AntiGrief.default_config.put("buildFalseNodes", caffects);
+		AntiGrief.default_config.put("allowInteract", cinteract);
+		AntiGrief.default_config.put("allowItem", citem);
 	}
 	
 	public void onEnable() {
@@ -105,7 +109,7 @@ public class AntiGrief extends JavaPlugin {
 	private void registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
 		Event.Priority compile_level = Event.Priority.Lowest;
-		ArrayList<String> level = config.get("level");
+		ArrayList<String> level = config.get("priorityLevel");
 		if (level.contains("lowest")) compile_level = Event.Priority.Lowest;
 		else if (level.contains("low")) compile_level = Event.Priority.Low;
 		else if (level.contains("normal")) compile_level = Event.Priority.Normal;
@@ -127,6 +131,7 @@ public class AntiGrief extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, compile_level, this);
+		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, compile_level, this);
 	}
 	
 	protected boolean canBuild(Player player_, String node_) {
@@ -135,17 +140,31 @@ public class AntiGrief extends JavaPlugin {
 		boolean canBuild = true;
 		if (group != null) {
 			canBuild = AntiGrief.gm.getPermissionHandler().canGroupBuild(group);
-			if (!canBuild && !this.config.get("affects").contains(node_))
+			if (!canBuild && !this.config.get("buildFalseNodes").contains(node_))
 				canBuild = true;
 		}
-		return (
-			(canBuild && !AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.prevent." + node_)) ||
-			(!canBuild && AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.allow." + node_))
-		) || AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.admin");
+		
+		boolean prevent = AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.prevent." + node_);
+		boolean allow = AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.allow." + node_);
+		boolean permission;
+		
+		if (AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.admin")) permission = true;
+		else {
+			if (((prevent && !allow) || (!prevent && allow)) && (!prevent && !allow)) {
+				permission = (canBuild && !AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.prevent." + node_)) ||
+					(!canBuild && AntiGrief.gm.getPermissionHandler().has(player_, "antigrief.allow." + node_));
+			} else permission = canBuild;
+		}
+		
+		return permission;
 	}
 	
 	protected boolean allowInteract(int id_) {
-		return contains("canInteract", id_ + "");
+		return contains("allowInteract", id_ + "");
+	}
+	
+	protected boolean allowItem(int id_) {
+		return contains("allowItem", id_ + "");
 	}
 	
 	private boolean contains(String key_, String value_) {
