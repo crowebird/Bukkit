@@ -18,10 +18,11 @@ public class AntiGriefBlockListener extends BlockListener {
 	}
 	
 	public void onBlockDamage(BlockDamageEvent event_) {
-		if (this.plugin.allowInteract(event_.getBlock().getType().getId())
+		Player player = event_.getPlayer();
+		if (this.plugin.allowInteract(player.getWorld().getName(), event_.getBlock().getType().getId())
 				&& event_.getDamageLevel() == BlockDamageLevel.STARTED)
 			return;
-		if (!this.plugin.canBuild(event_.getPlayer(), "block.damage")) {
+		if (!this.plugin.canBuild(player, "block.damage")) {
 			event_.setCancelled(true);
 		}
 	}
@@ -33,8 +34,9 @@ public class AntiGriefBlockListener extends BlockListener {
 	
 	public void onBlockInteract(BlockInteractEvent event_) {
 		if (event_.isPlayer()) {
-			if (this.plugin.allowInteract(event_.getBlock().getType().getId())) return;
-			if (!this.plugin.canBuild((Player)event_.getEntity(), "block.interact"))
+			Player player = (Player)event_.getEntity();
+			if (this.plugin.allowInteract(player.getWorld().getName(), event_.getBlock().getType().getId())) return;
+			if (!this.plugin.canBuild(player, "block.interact"))
 				event_.setCancelled(true);
 		}
 	}

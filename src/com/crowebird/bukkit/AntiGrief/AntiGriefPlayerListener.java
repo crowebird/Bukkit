@@ -1,5 +1,6 @@
 package com.crowebird.bukkit.AntiGrief;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerItemEvent;
 import org.bukkit.event.player.PlayerListener;
 
@@ -12,8 +13,9 @@ public class AntiGriefPlayerListener extends PlayerListener {
 	}
 	
 	public void onPlayerItem(PlayerItemEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "player.item")) {
-			if (this.plugin.allowInteract(event_.getItem().getType().getId())) return;
+		Player player = event_.getPlayer();
+		if (!this.plugin.canBuild(player, "player.item")) {
+			if (this.plugin.allowInteract(player.getWorld().getName(), event_.getItem().getType().getId())) return;
 			event_.setCancelled(true);
 		}
 	}
