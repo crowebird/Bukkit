@@ -24,7 +24,7 @@ import com.nijiko.permissions.PermissionHandler;
 
 public class AntiGrief extends JavaPlugin {
 	
-	//Bukkit 450+ //Bukkit 415+ //GroupManager 0.9e
+	//Bukkit 464+ //Bukkit 423+ //GroupManager 0.99c
 
 	public static PermissionHandler ph;
 	public static PluginDescriptionFile pdf;
