@@ -2,7 +2,7 @@
  * AntiGrief
  * Created by Michael Crowe (crowebird)
  * 
- * Feel free to use and learn, but give credit :D
+ * Feel free to learn from but give credit! :D
  */
 
 package com.crowebird.bukkit.AntiGrief;
@@ -35,8 +35,8 @@ public class AntiGrief extends JavaPlugin {
 	//private AntiGriefInventoryListener inventoryListener = new AntiGriefInventoryListener(this);
 	private AntiGriefVehicleListener vehicleListener;
 	
-	protected Config.type config;
-	private static Config.type default_config;
+	protected Config.Type config;
+	private Config.Type default_config;
 	
 	public AntiGrief() {
 		AntiGrief.gm = null;
@@ -48,14 +48,13 @@ public class AntiGrief extends JavaPlugin {
 		//inventoryListener = new AntiGriefInventoryListener(this);
 		vehicleListener = new AntiGriefVehicleListener(this);
 		
-		config = new Config.type();
-		default_config = new Config.type();
+		config = new Config.Type();
+		default_config = new Config.Type();
 		
 		
-		ArrayList<String> clevel = new ArrayList<String>();
-		clevel.add("lowest");
+		String clevel = "lowest";
 		
-		ArrayList<String> caffects = new ArrayList<String>();
+		Config.ALString caffects = new Config.ALString();
 		caffects.add("block.damage");
 		caffects.add("block.place");
 		caffects.add("block.interact");
@@ -79,15 +78,15 @@ public class AntiGrief extends JavaPlugin {
 		caffects.add("vehicle.use");
 		caffects.add("vehicle.move");
 		
-		ArrayList<String> cinteract = new ArrayList<String>();
-		cinteract.add("64");
+		Config.ALInteger cinteract = new Config.ALInteger();
+		cinteract.add(64);
 		
-		ArrayList<String> citem = new ArrayList<String>();
+		Config.ALInteger citem = new Config.ALInteger();
 		
-		AntiGrief.default_config.put("priorityLevel", clevel);
-		AntiGrief.default_config.put("buildFalseNodes", caffects);
-		AntiGrief.default_config.put("allowInteract", cinteract);
-		AntiGrief.default_config.put("allowItem", citem);
+		this.default_config.put("priorityLevel", clevel);
+		this.default_config.put("buildFalseNodes", caffects);
+		this.default_config.put("allow.interact", cinteract);
+		this.default_config.put("allow.item", citem);
 	}
 	
 	public void onEnable() {
@@ -95,28 +94,28 @@ public class AntiGrief extends JavaPlugin {
 		
 		if (!setupPermissions()) return;
 		
-		config = Config.getConfig(getDataFolder().toString(), "config.yml", AntiGrief.default_config);
+		config = Config.getConfig(AntiGrief.pdf.getName(), getDataFolder().toString(), "config.yml", this.default_config);
 		
 		registerEvents();
 		
-		AntiGrief.log.info(AntiGrief.pdf.getName() + " version " + AntiGrief.pdf.getVersion() + " was enabled!");
+		AntiGrief.log.info(AntiGrief.pdf.getName() + " - Version " + AntiGrief.pdf.getVersion() + " Enabled!");
 	}
 	
 	public void onDisable() {
-		AntiGrief.log.info(AntiGrief.pdf.getName() + " version " + AntiGrief.pdf.getVersion() + " was disabled!");
+		AntiGrief.log.info(AntiGrief.pdf.getName() + " - Disabled!");
 	}
 	
 	private void registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
 		Event.Priority compile_level = Event.Priority.Lowest;
-		ArrayList<String> level = config.get("priorityLevel");
-		if (level.contains("lowest")) compile_level = Event.Priority.Lowest;
-		else if (level.contains("low")) compile_level = Event.Priority.Low;
-		else if (level.contains("normal")) compile_level = Event.Priority.Normal;
-		else if (level.contains("high")) compile_level = Event.Priority.High;
-		else if (level.contains("highest")) compile_level = Event.Priority.Highest;
+		String level = (String)config.get("priorityLevel");
+		if (level.equals("lowest")) compile_level = Event.Priority.Lowest;
+		else if (level.equals("low")) compile_level = Event.Priority.Low;
+		else if (level.equals("normal")) compile_level = Event.Priority.Normal;
+		else if (level.equals("high")) compile_level = Event.Priority.High;
+		else if (level.equals("highest")) compile_level = Event.Priority.Highest;
 		
-		AntiGrief.log.info(AntiGrief.pdf.getName() + " is running on the " + compile_level.toString() + " priority level.");
+		AntiGrief.log.info(AntiGrief.pdf.getName() + " - Using the " + compile_level.toString() + " priority level.");
 		
 		pm.registerEvent(Event.Type.BLOCK_DAMAGED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACED, blockListener, compile_level, this);
@@ -140,7 +139,7 @@ public class AntiGrief extends JavaPlugin {
 		boolean canBuild = true;
 		if (group != null) {
 			canBuild = AntiGrief.gm.getPermissionHandler().canGroupBuild(group);
-			if (!canBuild && !this.config.get("buildFalseNodes").contains(node_))
+			if (!canBuild && !this.config.has("buildFalseNodes", node_))
 				canBuild = true;
 		}
 		
@@ -160,18 +159,11 @@ public class AntiGrief extends JavaPlugin {
 	}
 	
 	protected boolean allowInteract(int id_) {
-		return contains("allowInteract", id_ + "");
+		return this.config.has("allow.interact", id_);
 	}
 	
 	protected boolean allowItem(int id_) {
-		return contains("allowItem", id_ + "");
-	}
-	
-	private boolean contains(String key_, String value_) {
-		ArrayList<String> values = this.config.get(key_);
-		if (values != null)
-			return values.contains(value_);
-		return false;
+		return this.config.has("allow.item", id_);
 	}
 
 	private boolean setupPermissions() {
