@@ -13,6 +13,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 import java.util.logging.Logger;
@@ -53,23 +54,25 @@ public class Config {
 		public boolean has(String key_, Object value_) {
 			if (!this.containsKey(key_)) return false;
 			Object value = this.get(key_);
-
+			
 			if (value instanceof ArrayList<?>) return ((ArrayList<?>) value).contains(value_);
 			else return value.equals(value_);
 		}
 	};
 	
 	public static Config.Type read(String plugin_, String path_, String file_, Config.Type default_) throws IOException {
-		File yml = new File(path_ + File.separator + file_);
-		if (!yml.exists()) throw new IOException();
+		String file = path_ + File.separator + file_ + ".yml";
+		
+		File yml = new File(file);
+		if (!yml.exists()) throw new IOException("File does not exist!");
 
 		Config.Type hm = new Config.Type();
-		TreeSet<String> keys = new TreeSet<String>(default_.keySet());
-		
+		TreeSet<String> dkeys = new TreeSet<String>(default_.keySet());
 		Configuration config = new Configuration(yml);
 		config.load();
+	
 		
-		for(String key : keys) {
+		for(String key : dkeys) {
 			Object value = config.getProperty(key);
 			Object expected = default_.get(key);
 			
@@ -84,22 +87,30 @@ public class Config {
 				}
 			}
 			if (use_default) {
-				Config.log.warning(plugin_ + " - " + (value == null ? "Missing value" : "Unexpected value for") + " " + key + " in [" + path_ + File.separator + file_ + "], using default.");
+				Config.log.warning(plugin_ + " - " + (value == null ? "Missing" : "Unexpected value for") + " " + key + " [" + file + "], using default.");
 				value = expected;
 			}
-			hm.put(key, value);
+			hm.put(file_ + "." + key, value);
 		}
 
 		return hm;
 	}
 	
-	public static Config.Type getConfig(String plugin_, String path_, String file_, Config.Type default_) {
+	public static Config.Type getConfig(String plugin_, String path_, String file_, Config.Type default_, boolean create_) {
 		try {
 			return Config.read(plugin_, path_, file_, default_);
 		} catch (Exception ex) {
+			if (!create_) {
+				Config.log.warning(plugin_ + " - Unable to read " + file_ + " [" + path_ + File.separator + file_ + "], ignoring file.");
+				return new Config.Type();
+			}
 			if (ex instanceof IOException)
-				Config.create(plugin_, path_, file_, default_);
-			return default_;
+				Config.create(plugin_, path_, file_ + ".yml", default_);
+			
+			Config.Type hm = new Config.Type();
+			Set<String> keys = default_.keySet();
+			for(String key : keys) hm.put(file_ + "." + key, default_.get(key));
+			return hm;
 		}
 	}
 	
