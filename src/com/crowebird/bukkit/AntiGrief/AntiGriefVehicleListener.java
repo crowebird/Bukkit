@@ -10,7 +10,7 @@ import org.bukkit.event.vehicle.VehicleMoveEvent;
 
 public class AntiGriefVehicleListener extends VehicleListener {
 	
-	private AntiGrief plugin;
+	private final AntiGrief plugin;
 	
 	public AntiGriefVehicleListener(AntiGrief plugin_) {
 		this.plugin = plugin_;
@@ -19,7 +19,7 @@ public class AntiGriefVehicleListener extends VehicleListener {
 	public void onVehicleEnter(VehicleEnterEvent event_) {
 		Entity passenger = event_.getEntered();
 		if (passenger instanceof Player) {
-			if (!this.plugin.canBuild((Player)passenger, "vehicle.use"))
+			if (!this.plugin.access((Player)passenger, "vehicle.use"))
 				event_.setCancelled(true);
 		}
 	}
@@ -27,7 +27,7 @@ public class AntiGriefVehicleListener extends VehicleListener {
 	public void onVehicleMove(VehicleMoveEvent event_) {
 		Entity passenger = event_.getVehicle().getPassenger();
 		if (passenger instanceof Player) {
-			if (!this.plugin.canBuild((Player)passenger, "vehicle.use"))
+			if (!this.plugin.access((Player)passenger, "vehicle.use", true))
 				event_.getVehicle().eject();
 		}
 	}
@@ -35,7 +35,7 @@ public class AntiGriefVehicleListener extends VehicleListener {
 	public void onVehicleEntityCollision(VehicleEntityCollisionEvent event_) {
 		Entity collisionEntity = event_.getEntity();
 		if (collisionEntity instanceof Player) {
-			if (!this.plugin.canBuild((Player)collisionEntity, "vehicle.move")) {
+			if (!this.plugin.access((Player)collisionEntity, "vehicle.move", true)) {
 				event_.setCancelled(true);
 				event_.setCollisionCancelled(true);
 			}
@@ -45,7 +45,7 @@ public class AntiGriefVehicleListener extends VehicleListener {
 	public void onVehicleDamage(VehicleDamageEvent event_) {
 		Entity attacker = event_.getAttacker();
 		if (attacker instanceof Player) {
-			if (!this.plugin.canBuild((Player)attacker, "block.damage")) 
+			if (!this.plugin.access((Player)attacker, "block.damage")) 
 				event_.setCancelled(true);
 		}
 	}

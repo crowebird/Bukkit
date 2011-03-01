@@ -11,7 +11,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 
 public class AntiGriefBlockListener extends BlockListener {
 
-	private AntiGrief plugin;
+	private final AntiGrief plugin;
 	
 	public AntiGriefBlockListener(AntiGrief plugin_) {
 		this.plugin = plugin_;
@@ -22,13 +22,16 @@ public class AntiGriefBlockListener extends BlockListener {
 		if (this.plugin.allowInteract(player.getWorld().getName(), event_.getBlock().getType().getId())
 				&& event_.getDamageLevel() == BlockDamageLevel.STARTED)
 			return;
-		if (!this.plugin.canBuild(player, "block.damage")) {
+		if (this.plugin.allowBlock(player.getWorld().getName(), event_.getBlock().getType().getId())) return;
+		if (!this.plugin.access(player, "block.damage")) {
 			event_.setCancelled(true);
 		}
 	}
 	
 	public void onBlockPlace(BlockPlaceEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "block.place"))
+		Player player = event_.getPlayer();
+		if (this.plugin.allowBlock(player.getWorld().getName(), event_.getBlock().getType().getId())) return;
+		if (!this.plugin.access(player, "block.place"))
 			event_.setCancelled(true);
 	}
 	
@@ -36,18 +39,20 @@ public class AntiGriefBlockListener extends BlockListener {
 		if (event_.isPlayer()) {
 			Player player = (Player)event_.getEntity();
 			if (this.plugin.allowInteract(player.getWorld().getName(), event_.getBlock().getType().getId())) return;
-			if (!this.plugin.canBuild(player, "block.interact"))
+			if (!this.plugin.access(player, "block.interact"))
 				event_.setCancelled(true);
 		}
 	}
 	
 	public void onBlockBreak(BlockBreakEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "block.damage"))
+		Player player = event_.getPlayer();
+		if (this.plugin.allowBlock(player.getWorld().getName(), event_.getBlock().getType().getId())) return;
+		if (!this.plugin.access(player, "block.damage"))
 			event_.setCancelled(true);
 	}
 	
 	public void onBlockIgnite(BlockIgniteEvent event_) {
-		if (!this.plugin.canBuild(event_.getPlayer(), "block.ignite"))
+		if (!this.plugin.access(event_.getPlayer(), "block.ignite"))
 			event_.setCancelled(true);
 	}
 }

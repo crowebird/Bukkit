@@ -9,7 +9,8 @@ import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityTargetEvent;
 
 public class AntiGriefEntityListener extends EntityListener {
-	private AntiGrief plugin;
+	
+	private final AntiGrief plugin;
 	
 	public AntiGriefEntityListener(AntiGrief plugin_) {
 		this.plugin = plugin_;
@@ -19,7 +20,7 @@ public class AntiGriefEntityListener extends EntityListener {
 		if (event_.getEntity() instanceof Creeper) {
 			Entity target = (Entity)event_.getTarget();
 			if (target instanceof Player) {
-				if (!this.plugin.canBuild((Player)target, "entity.creeper"))
+				if (!this.plugin.access((Player)target, "entity.creeper", true))
 					event_.setCancelled(true);
 			}
 		}
@@ -31,12 +32,12 @@ public class AntiGriefEntityListener extends EntityListener {
 			EntityDamageByEntityEvent edbe = (EntityDamageByEntityEvent) event_;
 			Entity damager = edbe.getDamager();
 			if (damager instanceof Player) {
-				if (!this.plugin.canBuild((Player)damager, "player.damage.cause"))
+				if (!this.plugin.access((Player)damager, "player.damage.cause"))
 					event_.setCancelled(true);
 			}
 		}
 		if (entity instanceof Player) {
-			if (!this.plugin.canBuild((Player)entity, "player.damage.take." +  event_.getCause().toString().toLowerCase()))
+			if (!this.plugin.access((Player)entity, "player.damage.take." +  event_.getCause().toString().toLowerCase()))
 				event_.setCancelled(true);
 		}
 	}

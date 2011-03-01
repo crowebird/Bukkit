@@ -8,6 +8,7 @@
 package com.crowebird.bukkit.AntiGrief;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.logging.Logger;
 
 import org.anjocaido.groupmanager.GroupManager;
@@ -20,16 +21,17 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.crowebird.bukkit.util.Config;
 import com.nijiko.permissions.PermissionHandler;
-
+import com.nijikokun.bukkit.Permissions.Permissions;
 
 public class AntiGrief extends JavaPlugin {
 	
-	//Bukkit 464+ //Bukkit 423+ //GroupManager 0.99c
+	//Bukkit 478+ //Bukkit 428+ //GroupManager 0.99c + Permissions 2.4
 
-	public static PermissionHandler ph;
-	public static PluginDescriptionFile pdf;
+	public PermissionHandler ph;
+	public PluginDescriptionFile pdf;
+	public String pversion;
 	
-	protected static Logger log = Logger.getLogger("Minecraft");
+	protected Logger log = Logger.getLogger("Minecraft");
 	
 	private AntiGriefBlockListener blockListener;
 	private AntiGriefPlayerListener playerListener;
@@ -37,13 +39,15 @@ public class AntiGrief extends JavaPlugin {
 	//private AntiGriefInventoryListener inventoryListener = new AntiGriefInventoryListener(this);
 	private AntiGriefVehicleListener vehicleListener;
 	
-	private Config.Type config;
+	protected Config.Type config;
 	private Config.Type default_config_config;
 	private Config.Type default_world_config;
+	private HashMap<String, Long> delay;
 	
 	public AntiGrief() {
-		AntiGrief.ph = null;
-		AntiGrief.log = Logger.getLogger("Minecraft");
+		this.pversion = null;
+		this.ph = null;
+		this.log = Logger.getLogger("Minecraft");
 		
 		blockListener = new AntiGriefBlockListener(this);
 		playerListener = new AntiGriefPlayerListener(this);
@@ -56,10 +60,14 @@ public class AntiGrief extends JavaPlugin {
 		default_world_config = new Config.Type();
 		
 		String clevel = "lowest";
-		String cmessage = "You are not allowed to perform that action!";
+		String camessage = "You are not allowed to perform that action!";
+		String ccmessage = "You are not allowed to use that command!";
+		int cdelay = 5;
 		
 		this.default_config_config.put("priorityLevel", clevel);
-		this.default_config_config.put("message", cmessage);
+		this.default_config_config.put("message.access", camessage);
+		this.default_config_config.put("message.command", ccmessage);
+		this.default_config_config.put("message.delayy", cdelay);
 		
 		Config.ALString cbuildfalse = new Config.ALString();
 		cbuildfalse.add("block.damage");
@@ -68,16 +76,6 @@ public class AntiGrief extends JavaPlugin {
 		cbuildfalse.add("block.ignite");
 		
 		cbuildfalse.add("entity.creeper");
-		//caffects.add("entity.damage.block_explosion");
-		//caffects.add("entity.damage.contact");
-		//caffects.add("entity.damage.drowning");
-		//caffects.add("entity.damage.entity_attack");
-		//caffects.add("entity.damage.entity_explosion");
-		//caffects.add("entity.damage.fire");
-		//caffects.add("entity.damage.fire_tick");
-		//caffects.add("entity.damage.lava");
-		//caffects.add("entity.damage.suffocation");
-		//caffects.add("entity.damage.custom");
 		
 		cbuildfalse.add("player.damage.cause");
 		cbuildfalse.add("player.item");
@@ -91,21 +89,34 @@ public class AntiGrief extends JavaPlugin {
 		cinteract.add(64);
 		
 		Config.ALInteger citem = new Config.ALInteger();
+		Config.ALInteger cblock = new Config.ALInteger();
 
 		this.default_world_config.put("nodes.buildfalse", cbuildfalse);
 		this.default_world_config.put("nodes.buildtrue", cbuildtrue);
 		this.default_world_config.put("allow.interact", cinteract);
 		this.default_world_config.put("allow.item", citem);
+		this.default_world_config.put("allow.block", cblock);
 	}
 	
 	public void onEnable() {
-		AntiGrief.pdf = getDescription();
+		this.pdf = getDescription();
 		
 		if (!setupPermissions()) return;
 		
-		this.config.clear();
-		this.config.putAll(Config.getConfig(AntiGrief.pdf.getName(), getDataFolder().toString(), "config", this.default_config_config, true));
-		this.config.putAll(Config.getConfig(AntiGrief.pdf.getName(), getDataFolder().toString(), "default", this.default_world_config, true));
+		buildConfig();	
+	
+		registerEvents();
+		getCommand("ag").setExecutor(new AntiGriefCommand(this));
+		
+		this.log.info(this.pdf.getName() + " - Version " + this.pdf.getVersion() + " Enabled!");
+	}
+	
+	public void buildConfig() {
+		this.delay = new HashMap<String, Long>();
+		this.config = new Config.Type();
+		
+		this.config.putAll(Config.getConfig(this.pdf.getName(), getDataFolder().toString(), "config", this.default_config_config, true));
+		this.config.putAll(Config.getConfig(this.pdf.getName(), getDataFolder().toString(), "default", this.default_world_config, true));
 		
 		try {
 			File files[] = (new File(getDataFolder().toString())).listFiles();
@@ -116,21 +127,17 @@ public class AntiGrief extends JavaPlugin {
 					int extension = name.lastIndexOf(".");
 					name = name.substring(0, (extension == -1 ? name.length() : extension));
 					if (name.equals("config") || name.equals("default")) continue;
-					config.putAll(Config.getConfig(AntiGrief.pdf.getName(), getDataFolder().toString(), name, this.default_world_config, false));
+					config.putAll(Config.getConfig(this.pdf.getName(), getDataFolder().toString(), name, this.default_world_config, false));
 				}
 			}
 		} catch (Exception ex) { System.out.println(ex.toString()); }
-	
-		registerEvents();
-		
-		AntiGrief.log.info(AntiGrief.pdf.getName() + " - Version " + AntiGrief.pdf.getVersion() + " Enabled!");
 	}
 	
 	public void onDisable() {
-		AntiGrief.log.info(AntiGrief.pdf.getName() + " - Disabled!");
+		this.log.info(this.pdf.getName() + " - Disabled!");
 	}
 	
-	private void registerEvents() {
+	private Event.Priority registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
 		Event.Priority compile_level = Event.Priority.Lowest;
 		String level = (String)config.get("config.priorityLevel");
@@ -140,7 +147,7 @@ public class AntiGrief extends JavaPlugin {
 		else if (level.equals("high")) compile_level = Event.Priority.High;
 		else if (level.equals("highest")) compile_level = Event.Priority.Highest;
 		
-		AntiGrief.log.info(AntiGrief.pdf.getName() + " - Using the " + compile_level.toString() + " priority level.");
+		this.log.info(this.pdf.getName() + " - Using the " + compile_level.toString() + " priority level.");
 		
 		pm.registerEvent(Event.Type.BLOCK_DAMAGED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACED, blockListener, compile_level, this);
@@ -150,37 +157,64 @@ public class AntiGrief extends JavaPlugin {
 		pm.registerEvent(Event.Type.ENTITY_TARGET, entityListener, compile_level, this);
 		pm.registerEvent(Event.Type.ENTITY_DAMAGED, entityListener, compile_level, this);
 		
-		pm.registerEvent(Event.Type.PLAYER_ITEM, playerListener, compile_level, this);	
+		pm.registerEvent(Event.Type.PLAYER_ITEM, playerListener, compile_level, this);
+		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, compile_level, this);
 		
 		pm.registerEvent(Event.Type.VEHICLE_COLLISION_ENTITY, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, compile_level, this);
+		
+		return compile_level;
 	}
 	
-	protected boolean canBuild(Player player_, String node_) {
+	protected boolean access(Player player_, String node_) {
+		return access(player_, node_, false);
+	}
+	
+	@SuppressWarnings("deprecation")
+	protected boolean access(Player player_, String node_, boolean suppress) {		
 		if (player_ == null) return true;
-		String group = AntiGrief.ph.getGroup(player_.getName());
+		String group = null;
+		if (this.pversion == "GM") group = this.ph.getGroup(player_.getName());
+		else if (this.pversion == "P") group = this.ph.getGroup(player_.getWorld().getName(), player_.getName());
+		else return false;
 		boolean canBuild;
 		if (group != null) {
-			canBuild = AntiGrief.ph.canGroupBuild(group);
+			if (this.pversion == "GM") canBuild = this.ph.canGroupBuild(group);
+			else if (this.pversion == "P") canBuild = this.ph.canGroupBuild(player_.getWorld().getName(), group);
+			else return false;
 			if (!canBuild && !has(player_.getWorld().getName(), "nodes.buildfalse", node_)) canBuild = true;
 			else if (canBuild && has(player_.getWorld().getName(), "nodes.buildtrue", node_)) canBuild = false;
 		} else canBuild = true;
 		
-		boolean prevent = AntiGrief.ph.has(player_, "antigrief.prevent." + node_);
-		boolean allow = AntiGrief.ph.has(player_, "antigrief.allow." + node_);
+
+		boolean prevent = this.ph.has(player_, "antigrief.prevent." + node_);
+		boolean allow = this.ph.has(player_, "antigrief.allow." + node_);
 		boolean permission;
 		
-		if (AntiGrief.ph.has(player_, "antigrief.admin")) permission = true;
+		if (this.ph.has(player_, "antigrief.admin")) permission = true;
 		else {
 			if (prevent ^ allow) permission = (canBuild && !prevent) || (!canBuild && allow);
 			else permission = canBuild;
 		}
 		
-		if (!permission) {
-			String msg = (String)this.config.get("config.message");
-			if (!msg.equals("")) player_.sendMessage(msg);
+		if (!permission && !suppress) {
+			int delay = (Integer)this.config.get("config.delay");
+			int min_delay = (Integer)this.default_config_config.get("config.delay");
+			if (delay < min_delay) delay = min_delay;
+			String msg = (String)this.config.get("config.message.access");
+			if (!msg.equals("")) {
+				long time = System.currentTimeMillis() / 1000;
+				long prev_time;
+				try {
+					prev_time = this.delay.get(player_.getName());
+				} catch (Exception ex) { prev_time = 0; }
+				this.delay.put(player_.getName(), time);
+				long diff = time - prev_time;
+				if (prev_time == 0 || diff > delay)
+					player_.sendMessage(msg);
+			}
 		}
 		
 		return permission;
@@ -199,19 +233,33 @@ public class AntiGrief extends JavaPlugin {
 	protected boolean allowItem(String world_, int id_) {
 		return has(world_, "allow.item", id_);
 	}
+	
+	protected boolean allowBlock(String world_, int id_) {
+		return has(world_, "allow.block", id_);
+	}
 
 	private boolean setupPermissions() {
-		if (AntiGrief.ph != null) return true;
+		if (this.ph != null) return true;
 		Plugin permissions = this.getServer().getPluginManager().getPlugin("GroupManager");
 		if (permissions != null) {
 			if (!permissions.isEnabled()) this.getServer().getPluginManager().enablePlugin(permissions);
 			GroupManager gm = (GroupManager) permissions;
-			AntiGrief.ph = gm.getPermissionHandler();
+			this.ph = gm.getPermissionHandler();
+			this.pversion = "GM";
 			return true;
 		} else {
-			AntiGrief.log.severe(AntiGrief.pdf.getFullName() + " - No instance of GroupManager found. Disabling.");
-			this.getServer().getPluginManager().disablePlugin(this);
-			return false;
+			permissions = this.getServer().getPluginManager().getPlugin("Permissions");
+			if (permissions != null) {
+				if (!permissions.isEnabled()) this.getServer().getPluginManager().enablePlugin(permissions);
+				Permissions p = (Permissions) permissions;
+				this.ph = p.getHandler();
+				this.pversion = "P";
+				return true;
+			} else {
+				this.log.severe(this.pdf.getFullName() + " - No instance of GroupManager or Permissions found. Disabling.");
+				this.getServer().getPluginManager().disablePlugin(this);
+				return false;
+			}
 		}
 	}
 }

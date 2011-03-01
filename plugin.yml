@@ -1,3 +1,8 @@
 name: AntiGrief
 main: com.crowebird.bukkit.AntiGrief.AntiGrief
-version: 0.7
+version: 0.7.2
+
+commands:
+  ag:
+    description: AntiGrief commands
+    usage: '/ag reload - reloads AntiGrief configuration files'
