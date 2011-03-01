@@ -25,7 +25,7 @@ public class Config {
 	protected static final Logger log = Logger.getLogger("Minecraft");
 	
 	private static class AL<T> extends ArrayList<T> {
-		private static final long serialVersionUID = 2L;
+		private static final long serialVersionUID = 225L;
 		
 		public Class<?> getParameterized() {
 			return this.getClass();
@@ -33,7 +33,7 @@ public class Config {
 	}
 	
 	public static class ALInteger extends Config.AL<Integer> {
-		private static final long serialVersionUID = 3L;
+		private static final long serialVersionUID = 2254L;
 		
 		public Class<?> getParameterized() {
 			return Integer.class;
@@ -41,7 +41,7 @@ public class Config {
 	}
 	
 	public static class ALString extends Config.AL<String> {
-		private static final long serialVersionUID = 4L;
+		private static final long serialVersionUID = 2257L;
 		
 		public Class<?> getParameterized() {
 			return String.class;
@@ -49,7 +49,7 @@ public class Config {
 	}
 	
 	public static class Type extends HashMap<String, Object> {
-		private static final long serialVersionUID = 1L;
+		private static final long serialVersionUID = 28L;
 		
 		public boolean has(String key_, Object value_) {
 			if (!this.containsKey(key_)) return false;
