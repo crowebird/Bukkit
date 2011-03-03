@@ -15,16 +15,14 @@ public class AntiGriefPlayerListener extends PlayerListener {
 	
 	public void onPlayerItem(PlayerItemEvent event_) {
 		Player player = event_.getPlayer();
-		if (!this.plugin.access(player, "player.item")) {
-			if (this.plugin.allowInteract(player.getWorld().getName(), event_.getItem().getType().getId())) return;
+		if (!this.plugin.access(player, "player.item.use", event_.getItem().getType().getId()))
 			event_.setCancelled(true);
-		}
 	}
 	
 	public void onPlayerPickupItem(PlayerPickupItemEvent event_ ) {
+		System.out.println("FIRED");
 		Player player = event_.getPlayer();
-		if (!this.plugin.access(player, "player.item.pickup")) {
-			if (this.plugin.allowItem(player.getWorld().getName(), event_.getItem().getItemStack().getTypeId())) return;
+		if (!this.plugin.access(player, "player.item.pickup", event_.getItem().getItemStack().getTypeId(), true)) {
 			event_.setCancelled(true);
 		}
 	}

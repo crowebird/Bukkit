@@ -1,6 +1,6 @@
 name: AntiGrief
 main: com.crowebird.bukkit.AntiGrief.AntiGrief
-version: 0.7.2
+version: 0.8
 
 commands:
   ag:

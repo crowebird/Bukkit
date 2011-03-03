@@ -8,10 +8,12 @@
 package com.crowebird.bukkit.AntiGrief;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
 import org.anjocaido.groupmanager.GroupManager;
+import org.anjocaido.groupmanager.permissions.AnjoPermissionsHandler;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.plugin.Plugin;
@@ -19,17 +21,16 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.crowebird.bukkit.AntiGrief.ZoneProtection.AntiGriefZoneProtection;
+import com.crowebird.bukkit.AntiGrief.ZoneProtection.AntiGriefZoneProtectionException;
 import com.crowebird.bukkit.util.Config;
-import com.nijiko.permissions.PermissionHandler;
-import com.nijikokun.bukkit.Permissions.Permissions;
 
 public class AntiGrief extends JavaPlugin {
 	
-	//Bukkit 478+ //Bukkit 428+ //GroupManager 0.99c + Permissions 2.4
+	//Bukkit 493+ //Bukkit 432+ //GroupManager 1.0 pre-alpha 2
 
-	public PermissionHandler ph;
+	public GroupManager gm;
 	public PluginDescriptionFile pdf;
-	public String pversion;
 	
 	protected Logger log = Logger.getLogger("Minecraft");
 	
@@ -39,15 +40,17 @@ public class AntiGrief extends JavaPlugin {
 	//private AntiGriefInventoryListener inventoryListener = new AntiGriefInventoryListener(this);
 	private AntiGriefVehicleListener vehicleListener;
 	
+	protected AntiGriefZoneProtection zoneProtection;
+	
 	protected Config.Type config;
 	private Config.Type default_config_config;
 	private Config.Type default_world_config;
+	private Config.Type default_zone_config;
 	private HashMap<String, Long> delay;
 	
 	public AntiGrief() {
-		this.pversion = null;
-		this.ph = null;
-		this.log = Logger.getLogger("Minecraft");
+		gm = null;
+		log = Logger.getLogger("Minecraft");
 		
 		blockListener = new AntiGriefBlockListener(this);
 		playerListener = new AntiGriefPlayerListener(this);
@@ -58,16 +61,19 @@ public class AntiGrief extends JavaPlugin {
 		config = new Config.Type();
 		default_config_config = new Config.Type();
 		default_world_config = new Config.Type();
+		default_zone_config = new Config.Type();
 		
 		String clevel = "lowest";
 		String camessage = "You are not allowed to perform that action!";
 		String ccmessage = "You are not allowed to use that command!";
 		int cdelay = 5;
+		boolean czones = true;
 		
-		this.default_config_config.put("priorityLevel", clevel);
-		this.default_config_config.put("message.access", camessage);
-		this.default_config_config.put("message.command", ccmessage);
-		this.default_config_config.put("message.delayy", cdelay);
+		default_config_config.put("priorityLevel", clevel);
+		default_config_config.put("message.access", camessage);
+		default_config_config.put("message.command", ccmessage);
+		default_config_config.put("message.delay", cdelay);
+		default_config_config.put("zones", czones);
 		
 		Config.ALString cbuildfalse = new Config.ALString();
 		cbuildfalse.add("block.damage");
@@ -78,7 +84,8 @@ public class AntiGrief extends JavaPlugin {
 		cbuildfalse.add("entity.creeper");
 		
 		cbuildfalse.add("player.damage.cause");
-		cbuildfalse.add("player.item");
+		cbuildfalse.add("player.item.use");
+		cbuildfalse.add("player.item.pickup");
 		
 		cbuildfalse.add("vehicle.use");
 		cbuildfalse.add("vehicle.move");
@@ -91,32 +98,60 @@ public class AntiGrief extends JavaPlugin {
 		Config.ALInteger citem = new Config.ALInteger();
 		Config.ALInteger cblock = new Config.ALInteger();
 
-		this.default_world_config.put("nodes.buildfalse", cbuildfalse);
-		this.default_world_config.put("nodes.buildtrue", cbuildtrue);
-		this.default_world_config.put("allow.interact", cinteract);
-		this.default_world_config.put("allow.item", citem);
-		this.default_world_config.put("allow.block", cblock);
+		default_world_config.put("nodes.buildfalse", cbuildfalse);
+		default_world_config.put("nodes.buildtrue", cbuildtrue);
+		default_world_config.put("allow.interact", cinteract);
+		default_world_config.put("allow.item", citem);
+		default_world_config.put("allow.block", cblock);
+		
+		String zcreator = "";
+		String zparent = "";
+		Config.ALString zpoints = new Config.ALString();
+		Config.ALInteger gzitem = new Config.ALInteger();
+		Config.ALInteger gzinteract = new Config.ALInteger();
+		Config.ALInteger gzblock = new Config.ALInteger();
+		Config.ALInteger uzitem = new Config.ALInteger();
+		Config.ALInteger uzinteract = new Config.ALInteger();
+		Config.ALInteger uzblock = new Config.ALInteger();
+		Config.ALString gzprevent = new Config.ALString();
+		Config.ALString uzprevent = new Config.ALString();
+		
+		default_zone_config.put("creator", zcreator);
+		default_zone_config.put("parent", zparent);
+		default_zone_config.put("points", zpoints);
+		default_zone_config.put("groups.*.allow.item", gzitem);
+		default_zone_config.put("groups.*.allow.interact", gzinteract);
+		default_zone_config.put("groups.*.allow.block", gzblock);
+		default_zone_config.put("groups.*.nodes.prevent", gzprevent);
+		default_zone_config.put("users.*.allow.item", uzitem);
+		default_zone_config.put("users.*.allow.interact", uzinteract);
+		default_zone_config.put("users.*.allow.block", uzblock);
+		default_zone_config.put("users.*.nodes.prevent", uzprevent);
 	}
 	
 	public void onEnable() {
-		this.pdf = getDescription();
+		pdf = getDescription();
 		
 		if (!setupPermissions()) return;
+		
+		
+		
+		zoneProtection = new AntiGriefZoneProtection(this);
 		
 		buildConfig();	
 	
 		registerEvents();
 		getCommand("ag").setExecutor(new AntiGriefCommand(this));
 		
-		this.log.info(this.pdf.getName() + " - Version " + this.pdf.getVersion() + " Enabled!");
+		log.info(pdf.getName() + " - Version " + pdf.getVersion() + " Enabled!");
 	}
 	
 	public void buildConfig() {
-		this.delay = new HashMap<String, Long>();
-		this.config = new Config.Type();
+		delay = new HashMap<String, Long>();
+		config = new Config.Type();
 		
-		this.config.putAll(Config.getConfig(this.pdf.getName(), getDataFolder().toString(), "config", this.default_config_config, true));
-		this.config.putAll(Config.getConfig(this.pdf.getName(), getDataFolder().toString(), "default", this.default_world_config, true));
+		config.putAll(Config.getConfig(pdf.getName(), getDataFolder().toString(), "config", default_config_config, true, false));
+		config.putAll(Config.getConfig(pdf.getName(), getDataFolder().toString(), "default", default_world_config, true, false));
 		
 		try {
 			File files[] = (new File(getDataFolder().toString())).listFiles();
@@ -127,14 +162,35 @@ public class AntiGrief extends JavaPlugin {
 					int extension = name.lastIndexOf(".");
 					name = name.substring(0, (extension == -1 ? name.length() : extension));
 					if (name.equals("config") || name.equals("default")) continue;
-					config.putAll(Config.getConfig(this.pdf.getName(), getDataFolder().toString(), name, this.default_world_config, false));
+					config.putAll(Config.getConfig(pdf.getName(), getDataFolder().toString(), name, default_world_config, false, false));
 				}
 			}
 		} catch (Exception ex) { System.out.println(ex.toString()); }
+		
+		if (config.get("config.zones").equals(false)) return;
+		try {
+			new File(getDataFolder().toString() + File.separator + "zones").mkdir();
+			File dirs[] = (new File(getDataFolder().toString() + File.separator + "zones")).listFiles();
+			if (dirs != null) {
+				for (File dir : dirs) {
+					if (!dir.isDirectory()) continue;
+					String world = dir.getName();
+					File files[] = (new File(getDataFolder().toString() + File.separator + "zones" + File.separator + world)).listFiles();
+					if (files != null) {
+						for(File file : files) {
+							String name = file.getName();
+							int extension = name.lastIndexOf(".");
+							name = name.substring(0, (extension == -1 ? name.length() : extension));
+							zoneProtection.addZone(world, name, Config.read(pdf.getName(), getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, default_zone_config, true, false));
+						}
+					}
+				}
+			}
+		} catch (IOException ex) { System.out.println(ex.toString()); }
 	}
 	
 	public void onDisable() {
-		this.log.info(this.pdf.getName() + " - Disabled!");
+		log.info(pdf.getName() + " - Disabled!");
 	}
 	
 	private Event.Priority registerEvents() {
@@ -147,12 +203,13 @@ public class AntiGrief extends JavaPlugin {
 		else if (level.equals("high")) compile_level = Event.Priority.High;
 		else if (level.equals("highest")) compile_level = Event.Priority.Highest;
 		
-		this.log.info(this.pdf.getName() + " - Using the " + compile_level.toString() + " priority level.");
+		log.info(pdf.getName() + " - Using the " + compile_level.toString() + " priority level.");
 		
 		pm.registerEvent(Event.Type.BLOCK_DAMAGED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_INTERACT, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_IGNITE, blockListener, compile_level, this);
+		pm.registerEvent(Event.Type.BLOCK_RIGHTCLICKED, blockListener, compile_level, this);
 		
 		pm.registerEvent(Event.Type.ENTITY_TARGET, entityListener, compile_level, this);
 		pm.registerEvent(Event.Type.ENTITY_DAMAGED, entityListener, compile_level, this);
@@ -168,98 +225,101 @@ public class AntiGrief extends JavaPlugin {
 		return compile_level;
 	}
 	
-	protected boolean access(Player player_, String node_) {
-		return access(player_, node_, false);
-	}
-	
-	@SuppressWarnings("deprecation")
-	protected boolean access(Player player_, String node_, boolean suppress) {		
+	protected boolean access(Player player_, String node_) { return access(player_, node_, -1); }
+	protected boolean access(Player player_, String node_, boolean suppress_) { return access(player_, node_, -1, suppress_); }
+	protected boolean access(Player player_, String node_, int item_) { return access(player_, node_, item_, false); }
+	protected boolean access(Player player_, String node_, int item_, boolean suppress_) { 
 		if (player_ == null) return true;
-		String group = null;
-		if (this.pversion == "GM") group = this.ph.getGroup(player_.getName());
-		else if (this.pversion == "P") group = this.ph.getGroup(player_.getWorld().getName(), player_.getName());
-		else return false;
-		boolean canBuild;
-		if (group != null) {
-			if (this.pversion == "GM") canBuild = this.ph.canGroupBuild(group);
-			else if (this.pversion == "P") canBuild = this.ph.canGroupBuild(player_.getWorld().getName(), group);
-			else return false;
-			if (!canBuild && !has(player_.getWorld().getName(), "nodes.buildfalse", node_)) canBuild = true;
-			else if (canBuild && has(player_.getWorld().getName(), "nodes.buildtrue", node_)) canBuild = false;
-		} else canBuild = true;
 		
-
-		boolean prevent = this.ph.has(player_, "antigrief.prevent." + node_);
-		boolean allow = this.ph.has(player_, "antigrief.allow." + node_);
-		boolean permission;
+		boolean permission = false;
+		boolean zoned = false;
 		
-		if (this.ph.has(player_, "antigrief.admin")) permission = true;
-		else {
-			if (prevent ^ allow) permission = (canBuild && !prevent) || (!canBuild && allow);
-			else permission = canBuild;
+		if (config.get("config.zones").equals(true)) {
+			try {
+				permission = zoneProtection.access(player_, node_, item_, suppress_);
+				zoned = true;
+			} catch (AntiGriefZoneProtectionException ex) { /**/ }
 		}
 		
-		if (!permission && !suppress) {
-			int delay = (Integer)this.config.get("config.delay");
-			int min_delay = (Integer)this.default_config_config.get("config.delay");
+		if (!zoned) {
+			String world = player_.getWorld().getName();
+			
+			String group = getGroup(player_);
+			boolean canBuild = canBuild(player_, group);
+			
+			if (group == null) return false;
+			if (!canBuild && !Config.has(config, world, "nodes.buildfalse", node_, "default")) canBuild = true;
+			else if (canBuild && Config.has(config, world, "nodes.buildtrue", node_, "default")) canBuild = false;
+	
+			boolean prevent = worldPermissions(player_).has(player_, "antigrief.prevent." + node_);
+			boolean allow = worldPermissions(player_).has(player_, "antigrief.allow." + node_);
+			
+			if (worldPermissions(player_).has(player_, "antigrief.admin")) permission = true;
+			else {
+				if (prevent ^ allow) permission = (canBuild && !prevent) || (!canBuild && allow);
+				else permission = canBuild;
+			}
+			
+			if (!permission) permission = allowItem(world, node_, item_);
+		}
+		
+		if (!permission && !suppress_) {
+			int delay = (Integer)config.get("config.message.delay");
+			int min_delay = (Integer)default_config_config.get("message.delay");
 			if (delay < min_delay) delay = min_delay;
-			String msg = (String)this.config.get("config.message.access");
+			String msg = (String)config.get("config.message.access");
 			if (!msg.equals("")) {
 				long time = System.currentTimeMillis() / 1000;
 				long prev_time;
 				try {
 					prev_time = this.delay.get(player_.getName());
 				} catch (Exception ex) { prev_time = 0; }
-				this.delay.put(player_.getName(), time);
 				long diff = time - prev_time;
-				if (prev_time == 0 || diff > delay)
+				if (prev_time == 0 || diff > delay) {
 					player_.sendMessage(msg);
+					this.delay.put(player_.getName(), time);
+				}
 			}
 		}
 		
 		return permission;
 	}
 	
-	protected boolean has(String world_, String node_, Object value_) {
-		boolean output = this.config.has(world_ + "." + node_, value_);
-		if (!output) return this.config.has("default." + node_, value_);
-		return output;
+	public boolean allowItem(String world_, String node_, int item_) { return allowItem(world_, node_, item_, "default"); }
+	public boolean allowItem(String world_, String node_, int item_, String alternative_) {
+		String node;
+		if (node_.equals("block.interact")) node = "allow.interact";
+		else if (node_.equals("block.damage") || node_.equals("block.place")) node = "allow.block";
+		else if (node_.equals("player.item.pickup") || node_.equals("player.item.use")) node = "allow.item";
+		else return false;
+		
+		return Config.has(config, world_, node, item_, alternative_);
 	}
 	
-	protected boolean allowInteract(String world_, int id_) {
-		return has(world_, "allow.interact", id_);
+	protected boolean canBuild(Player player_, String group_) {
+		if (group_ != null) return  worldPermissions(player_).canGroupBuild(group_);
+		else return false;
 	}
 	
-	protected boolean allowItem(String world_, int id_) {
-		return has(world_, "allow.item", id_);
+	public String getGroup(Player player_) {
+		return worldPermissions(player_).getGroup(player_.getName());		
 	}
 	
-	protected boolean allowBlock(String world_, int id_) {
-		return has(world_, "allow.block", id_);
+	public AnjoPermissionsHandler worldPermissions(Player player_) {
+		return gm.getWorldsHolder().getWorldPermissions(player_);
 	}
 
 	private boolean setupPermissions() {
-		if (this.ph != null) return true;
-		Plugin permissions = this.getServer().getPluginManager().getPlugin("GroupManager");
+		if (gm != null) return true;
+		Plugin permissions = getServer().getPluginManager().getPlugin("GroupManager");
 		if (permissions != null) {
-			if (!permissions.isEnabled()) this.getServer().getPluginManager().enablePlugin(permissions);
-			GroupManager gm = (GroupManager) permissions;
-			this.ph = gm.getPermissionHandler();
-			this.pversion = "GM";
+			if (!permissions.isEnabled()) getServer().getPluginManager().enablePlugin(permissions);
+			gm = (GroupManager) permissions;
 			return true;
 		} else {
-			permissions = this.getServer().getPluginManager().getPlugin("Permissions");
-			if (permissions != null) {
-				if (!permissions.isEnabled()) this.getServer().getPluginManager().enablePlugin(permissions);
-				Permissions p = (Permissions) permissions;
-				this.ph = p.getHandler();
-				this.pversion = "P";
-				return true;
-			} else {
-				this.log.severe(this.pdf.getFullName() + " - No instance of GroupManager or Permissions found. Disabling.");
-				this.getServer().getPluginManager().disablePlugin(this);
-				return false;
-			}
+			log.severe(pdf.getFullName() + " - No instance of GroupManager or Permissions found. Disabling.");
+			getServer().getPluginManager().disablePlugin(this);
+			return false;
 		}
 	}
 }
