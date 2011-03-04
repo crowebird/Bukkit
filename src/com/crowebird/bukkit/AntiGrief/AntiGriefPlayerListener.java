@@ -20,7 +20,6 @@ public class AntiGriefPlayerListener extends PlayerListener {
 	}
 	
 	public void onPlayerPickupItem(PlayerPickupItemEvent event_ ) {
-		System.out.println("FIRED");
 		Player player = event_.getPlayer();
 		if (!this.plugin.access(player, "player.item.pickup", event_.getItem().getItemStack().getTypeId(), true)) {
 			event_.setCancelled(true);

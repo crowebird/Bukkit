@@ -8,7 +8,6 @@
 package com.crowebird.bukkit.AntiGrief;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
@@ -168,25 +167,7 @@ public class AntiGrief extends JavaPlugin {
 		} catch (Exception ex) { System.out.println(ex.toString()); }
 		
 		if (config.get("config.zones").equals(false)) return;
-		try {
-			new File(getDataFolder().toString() + File.separator + "zones").mkdir();
-			File dirs[] = (new File(getDataFolder().toString() + File.separator + "zones")).listFiles();
-			if (dirs != null) {
-				for (File dir : dirs) {
-					if (!dir.isDirectory()) continue;
-					String world = dir.getName();
-					File files[] = (new File(getDataFolder().toString() + File.separator + "zones" + File.separator + world)).listFiles();
-					if (files != null) {
-						for(File file : files) {
-							String name = file.getName();
-							int extension = name.lastIndexOf(".");
-							name = name.substring(0, (extension == -1 ? name.length() : extension));
-							zoneProtection.addZone(world, name, Config.read(pdf.getName(), getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, default_zone_config, true, false));
-						}
-					}
-				}
-			}
-		} catch (IOException ex) { System.out.println(ex.toString()); }
+		zoneProtection.load(default_zone_config);
 	}
 	
 	public void onDisable() {
@@ -231,6 +212,8 @@ public class AntiGrief extends JavaPlugin {
 	protected boolean access(Player player_, String node_, int item_, boolean suppress_) { 
 		if (player_ == null) return true;
 		
+		if (worldPermissions(player_).has(player_, "antigrief.admin")) return true;
+		
 		boolean permission = false;
 		boolean zoned = false;
 		
@@ -253,12 +236,9 @@ public class AntiGrief extends JavaPlugin {
 	
 			boolean prevent = worldPermissions(player_).has(player_, "antigrief.prevent." + node_);
 			boolean allow = worldPermissions(player_).has(player_, "antigrief.allow." + node_);
-			
-			if (worldPermissions(player_).has(player_, "antigrief.admin")) permission = true;
-			else {
-				if (prevent ^ allow) permission = (canBuild && !prevent) || (!canBuild && allow);
-				else permission = canBuild;
-			}
+
+			if (prevent ^ allow) permission = (canBuild && !prevent) || (!canBuild && allow);
+			else permission = canBuild;
 			
 			if (!permission) permission = allowItem(world, node_, item_);
 		}
