@@ -7,6 +7,7 @@ import org.bukkit.event.player.PlayerPickupItemEvent;
 
 public class AntiGriefPlayerListener extends PlayerListener {
 
+	@SuppressWarnings("unused")
 	private final AntiGrief plugin;
 	
 	public AntiGriefPlayerListener(AntiGrief plugin_) {
@@ -14,15 +15,16 @@ public class AntiGriefPlayerListener extends PlayerListener {
 	}
 	
 	public void onPlayerItem(PlayerItemEvent event_) {
+		@SuppressWarnings("unused")
 		Player player = event_.getPlayer();
-		if (!this.plugin.access(player, "player.item.use", event_.getItem().getType().getId()))
-			event_.setCancelled(true);
+		//if (!this.plugin.access(player, "player.item.use", event_.getItem().getType().getId()))
+		//	event_.setCancelled(true);
 	}
 	
 	public void onPlayerPickupItem(PlayerPickupItemEvent event_ ) {
+		@SuppressWarnings("unused")
 		Player player = event_.getPlayer();
-		if (!this.plugin.access(player, "player.item.pickup", event_.getItem().getItemStack().getTypeId(), true)) {
-			event_.setCancelled(true);
-		}
+		//if (!this.plugin.access(player, "player.item.pickup", event_.getItem().getItemStack().getTypeId(), true)) {
+		//	event_.setCancelled(true);
 	}
 }

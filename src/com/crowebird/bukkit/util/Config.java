@@ -47,7 +47,7 @@ public class Config {
 	public static class Type extends HashMap<String, Object> {
 		private static final long serialVersionUID = 28L;
 		
-		public boolean has(String key_, Object value_) {			
+		public boolean has(String key_, Object value_) {	
 			if (!this.containsKey(key_)) return false;
 			Object value = this.get(key_);
 			
@@ -56,14 +56,13 @@ public class Config {
 		}
 	};
 	
+	public static boolean has(Config.Type config_, String node_, Object value_) { return Config.has(config_, "", node_, value_); }
 	public static boolean has(Config.Type config_, String world_, String node_, Object value_) { return Config.has(config_, world_, node_, value_, ""); }
 	public static boolean has(Config.Type config_, String world_, String node_, Object value_, String alternative_) {
-		if (config_.containsKey(world_ + "." + node_)) return config_.has(world_ + "." + node_, value_);
+		String key = (world_.equals("") ? "" : world_ + ".") + node_;
+		if (config_.containsKey(key)) return config_.has(key, value_);
 		if (alternative_.equals("")) return false;
 		return config_.has(alternative_ + "." + node_, value_);
-	}
-	public static boolean has(Config.Type config_, String node_, Object value_) {
-		return config_.has(node_, value_);
 	}
 	
 	public static Config.Type read(String plugin_, String path_, String file_, Config.Type default_, boolean ignore_) throws IOException {

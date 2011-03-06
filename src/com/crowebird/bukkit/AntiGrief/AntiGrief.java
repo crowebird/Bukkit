@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 import org.anjocaido.groupmanager.GroupManager;
 import org.anjocaido.groupmanager.permissions.AnjoPermissionsHandler;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.plugin.Plugin;
@@ -66,13 +67,15 @@ public class AntiGrief extends JavaPlugin {
 		String camessage = "You are not allowed to perform that action!";
 		String ccmessage = "You are not allowed to use that command!";
 		int cdelay = 5;
+		int ctool = 280;
 		boolean czones = true;
 		
-		default_config_config.put("priorityLevel", clevel);
+		default_config_config.put("priority", clevel);
 		default_config_config.put("message.access", camessage);
 		default_config_config.put("message.command", ccmessage);
 		default_config_config.put("message.delay", cdelay);
-		default_config_config.put("zones", czones);
+		default_config_config.put("zones.enable", czones);
+		default_config_config.put("zones.tool", ctool);
 		
 		Config.ALString cbuildfalse = new Config.ALString();
 		cbuildfalse.add("block.damage");
@@ -166,7 +169,7 @@ public class AntiGrief extends JavaPlugin {
 			}
 		} catch (Exception ex) { System.out.println(ex.toString()); }
 		
-		if (config.get("config.zones").equals(false)) return;
+		if (config.get("config.zones.enable").equals(false)) return;
 		zoneProtection.load(default_zone_config);
 	}
 	
@@ -177,7 +180,7 @@ public class AntiGrief extends JavaPlugin {
 	private Event.Priority registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
 		Event.Priority compile_level = Event.Priority.Lowest;
-		String level = (String)config.get("config.priorityLevel");
+		String level = (String)config.get("config.priority");
 		if (level.equals("lowest")) compile_level = Event.Priority.Lowest;
 		else if (level.equals("low")) compile_level = Event.Priority.Low;
 		else if (level.equals("normal")) compile_level = Event.Priority.Normal;
@@ -205,11 +208,11 @@ public class AntiGrief extends JavaPlugin {
 		
 		return compile_level;
 	}
-	
-	protected boolean access(Player player_, String node_) { return access(player_, node_, -1); }
-	protected boolean access(Player player_, String node_, boolean suppress_) { return access(player_, node_, -1, suppress_); }
-	protected boolean access(Player player_, String node_, int item_) { return access(player_, node_, item_, false); }
-	protected boolean access(Player player_, String node_, int item_, boolean suppress_) { 
+		
+	protected boolean access(Player player_, String node_, Location location_) { return access(player_, node_, location_, -1); }
+	protected boolean access(Player player_, String node_, Location location_, int item_) { return access(player_, node_, location_, item_, false); }
+	protected boolean access(Player player_, String node_, Location location_, boolean supress_) { return access(player_, node_, location_, -1, supress_); }
+	protected boolean access(Player player_, String node_, Location location_, int item_, boolean supress_) {
 		if (player_ == null) return true;
 		
 		if (worldPermissions(player_).has(player_, "antigrief.admin")) return true;
@@ -217,9 +220,9 @@ public class AntiGrief extends JavaPlugin {
 		boolean permission = false;
 		boolean zoned = false;
 		
-		if (config.get("config.zones").equals(true)) {
+		if (config.get("config.zones.enable").equals(true)) {
 			try {
-				permission = zoneProtection.access(player_, node_, item_, suppress_);
+				permission = zoneProtection.access(player_, node_, location_, item_, supress_);
 				zoned = true;
 			} catch (AntiGriefZoneProtectionException ex) { /**/ }
 		}
@@ -243,7 +246,7 @@ public class AntiGrief extends JavaPlugin {
 			if (!permission) permission = allowItem(world, node_, item_);
 		}
 		
-		if (!permission && !suppress_) {
+		if (!permission && !supress_) {
 			int delay = (Integer)config.get("config.message.delay");
 			int min_delay = (Integer)default_config_config.get("message.delay");
 			if (delay < min_delay) delay = min_delay;

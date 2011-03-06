@@ -20,7 +20,7 @@ public class AntiGriefEntityListener extends EntityListener {
 		if (event_.getEntity() instanceof Creeper) {
 			Entity target = (Entity)event_.getTarget();
 			if (target instanceof Player) {
-				if (!this.plugin.access((Player)target, "entity.creeper", true))
+				if (!this.plugin.access((Player)target, "entity.creeper", target.getLocation(), true))
 					event_.setCancelled(true);
 			}
 		}
@@ -32,12 +32,12 @@ public class AntiGriefEntityListener extends EntityListener {
 			EntityDamageByEntityEvent edbe = (EntityDamageByEntityEvent) event_;
 			Entity damager = edbe.getDamager();
 			if (damager instanceof Player) {
-				if (!this.plugin.access((Player)damager, "player.damage.cause"))
+				if (!this.plugin.access((Player)damager, "player.damage.cause", damager.getLocation()))
 					event_.setCancelled(true);
 			}
 		}
 		if (entity instanceof Player) {
-			if (!this.plugin.access((Player)entity, "player.damage.take." +  event_.getCause().toString().toLowerCase()))
+			if (!this.plugin.access((Player)entity, "player.damage.take." +  event_.getCause().toString().toLowerCase(), entity.getLocation()))
 				event_.setCancelled(true);
 		}
 	}
