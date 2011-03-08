@@ -64,7 +64,7 @@ public class AntiGriefCommand implements CommandExecutor {
 					}
 				} else {
 					plugin.buildConfig();
-					plugin.log.info("AntiGrief reloaded!");
+					plugin.log("AntiGrief reloaded!");
 				}
 				return true;
 			}

@@ -30,31 +30,20 @@ package com.crowebird.bukkit.AntiGrief;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.logging.Logger;
 
-import org.anjocaido.groupmanager.GroupManager;
-import org.anjocaido.groupmanager.permissions.AnjoPermissionsHandler;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.java.JavaPlugin;
 
+import com.crowebird.bukkit.BukkitPlugin;
 import com.crowebird.bukkit.AntiGrief.ZoneProtection.AntiGriefZoneProtection;
 import com.crowebird.bukkit.AntiGrief.ZoneProtection.AntiGriefZoneProtectionException;
 import com.crowebird.bukkit.util.Config;
 
-public class AntiGrief extends JavaPlugin {
+public class AntiGrief extends BukkitPlugin {
 	
-	//Bukkit 493+ //Bukkit 432+ //GroupManager 1.0 pre-alpha 2
-
-	public GroupManager gm;
-	public PluginDescriptionFile pdf;
-	
-	protected Logger log = Logger.getLogger("Minecraft");
-	
+	//Bukkit 493+ //Bukkit 432+ //GroupManager 1.0 pre-alpha 2	
 	private AntiGriefBlockListener blockListener;
 	private AntiGriefPlayerListener playerListener;
 	private AntiGriefEntityListener entityListener;
@@ -70,8 +59,7 @@ public class AntiGrief extends JavaPlugin {
 	private HashMap<String, Long> delay;
 	
 	public AntiGrief() {
-		gm = null;
-		log = Logger.getLogger("Minecraft");
+		super(true);
 		
 		blockListener = new AntiGriefBlockListener(this);
 		playerListener = new AntiGriefPlayerListener(this);
@@ -153,20 +141,11 @@ public class AntiGrief extends JavaPlugin {
 	}
 	
 	public void onEnable() {
-		pdf = getDescription();
-		
-		if (!setupPermissions()) return;
-		
-		
-		
 		zoneProtection = new AntiGriefZoneProtection(this);
-		
 		buildConfig();	
-	
-		registerEvents();
 		getCommand("ag").setExecutor(new AntiGriefCommand(this));
 		
-		log.info(pdf.getName() + " - Version " + pdf.getVersion() + " Enabled!");
+		super.onEnable();
 	}
 	
 	public void buildConfig() {
@@ -194,11 +173,7 @@ public class AntiGrief extends JavaPlugin {
 		zoneProtection.load(default_zone_config);
 	}
 	
-	public void onDisable() {
-		log.info(pdf.getName() + " - Disabled!");
-	}
-	
-	private Event.Priority registerEvents() {
+	protected void registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
 		Event.Priority compile_level = Event.Priority.Lowest;
 		String level = (String)config.get("config.priority");
@@ -208,7 +183,7 @@ public class AntiGrief extends JavaPlugin {
 		else if (level.equals("high")) compile_level = Event.Priority.High;
 		else if (level.equals("highest")) compile_level = Event.Priority.Highest;
 		
-		log.info(pdf.getName() + " - Using the " + compile_level.toString() + " priority level.");
+		log("Using the " + compile_level.toString() + " priority level.");
 		
 		pm.registerEvent(Event.Type.BLOCK_DAMAGED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACED, blockListener, compile_level, this);
@@ -226,8 +201,6 @@ public class AntiGrief extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, compile_level, this);
-		
-		return compile_level;
 	}
 		
 	protected boolean access(Player player_, String node_, Location location_) { return access(player_, node_, location_, -1); }
@@ -252,7 +225,7 @@ public class AntiGrief extends JavaPlugin {
 			String world = player_.getWorld().getName();
 			
 			String group = getGroup(player_);
-			boolean canBuild = canBuild(player_, group);
+			boolean canBuild = canGroupBuild(player_, group);
 			
 			if (group == null) return false;
 			if (!canBuild && !Config.has(config, world, "nodes.buildfalse", node_, "default")) canBuild = true;
@@ -298,32 +271,5 @@ public class AntiGrief extends JavaPlugin {
 		else return false;
 		
 		return Config.has(config, world_, node, item_, alternative_);
-	}
-	
-	protected boolean canBuild(Player player_, String group_) {
-		if (group_ != null) return  worldPermissions(player_).canGroupBuild(group_);
-		else return false;
-	}
-	
-	public String getGroup(Player player_) {
-		return worldPermissions(player_).getGroup(player_.getName());		
-	}
-	
-	public AnjoPermissionsHandler worldPermissions(Player player_) {
-		return gm.getWorldsHolder().getWorldPermissions(player_);
-	}
-
-	private boolean setupPermissions() {
-		if (gm != null) return true;
-		Plugin permissions = getServer().getPluginManager().getPlugin("GroupManager");
-		if (permissions != null) {
-			if (!permissions.isEnabled()) getServer().getPluginManager().enablePlugin(permissions);
-			gm = (GroupManager) permissions;
-			return true;
-		} else {
-			log.severe(pdf.getFullName() + " - No instance of GroupManager or Permissions found. Disabling.");
-			getServer().getPluginManager().disablePlugin(this);
-			return false;
-		}
 	}
 }
