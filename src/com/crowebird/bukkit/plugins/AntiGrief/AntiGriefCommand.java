@@ -26,7 +26,7 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief;
+package com.crowebird.bukkit.plugins.AntiGrief;
 
 import java.util.HashMap;
 
@@ -55,7 +55,7 @@ public class AntiGriefCommand implements CommandExecutor {
 			if (args_[0].equals("reload")) {
 				if (sender_ instanceof Player) {
 					Player player = (Player)sender_;
-					if (!plugin.worldPermissions(player).has(player, "antigrief.reload")) {
+					if (!plugin.has(player, "antigrief.reload")) {
 						String msg = (String)this.plugin.config.get("config.message.command");
 						if (!msg.equals("")) player.sendMessage(msg);
 					} else {
@@ -71,7 +71,7 @@ public class AntiGriefCommand implements CommandExecutor {
 		} else {
 			if (sender_ instanceof Player) {
 				Player player = (Player)sender_;
-				if (plugin.worldPermissions(player).has(player, "antigrief.zone.create")) {
+				if (plugin.has(player, "antigrief.zone.create")) {
 					if (args_[0].equals("zone")) {
 						if (args_[1].equals("create")) {
 							if (args_.length < 3) {
@@ -91,7 +91,7 @@ public class AntiGriefCommand implements CommandExecutor {
 							}
 							return true;
 						}
-						if (args_[1].equals("finish"))  {
+						else if (args_[1].equals("finish"))  {
 							if (plugin.zoneProtection.isBuilding(player.getName())) {
 								if (plugin.zoneProtection.finishZone(player)) {
 									ItemStack i = (ItemStack)ZPtools.get(player.getName());
@@ -103,11 +103,34 @@ public class AntiGriefCommand implements CommandExecutor {
 								player.sendMessage("You are not creating a zone!");
 							return true;
 						}
-						if (args_[1].equals("cancel")) {
+						else if (args_[1].equals("cancel")) {
 							if (plugin.zoneProtection.isBuilding(player.getName())) {
 								plugin.zoneProtection.cancelZone(player.getName());
 							} else player.sendMessage("You are not creating a zone!");
 							return true;
+						}
+						else if (args_[1].equals("visulize")) {
+							if (args_.length == 3) {
+								plugin.zoneProtection.visulize(player, args_[2]);					
+								return true;
+							}
+						}
+						else {
+							if (args_.length == 5) {
+								if (args_[2].equals("add")) {
+									if (args_[3].equals("user")) {
+										plugin.zoneProtection.addUser(player, args_[1]);
+									} else if (args_[3].equals("group")) {
+										plugin.zoneProtection.addGroup(player, args_[1]);
+									}
+								} else if (args_[2].equals("remove")) {
+									if (args_[3].equals("user")) {
+										plugin.zoneProtection.removeUser(player, args_[1]);
+									} else if (args_[3].equals("group")) {
+										plugin.zoneProtection.removeGroup(player, args_[1]);
+									}
+								}
+							}
 						}
 					}
 				} else {

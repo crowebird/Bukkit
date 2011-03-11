@@ -26,14 +26,15 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief.ZoneProtection;
+package com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import com.crowebird.bukkit.AntiGrief.AntiGrief;
+import com.crowebird.bukkit.plugins.AntiGrief.AntiGrief;
 
 public class AntiGriefZoneProtectionWorld {
 
@@ -42,6 +43,7 @@ public class AntiGriefZoneProtectionWorld {
 	private final AntiGrief plugin;
 	
 	private ArrayList<AntiGriefZoneProtectionZone> zones;
+	private HashMap<String, String> inside;
 	
 	private final String world;
 	
@@ -49,11 +51,20 @@ public class AntiGriefZoneProtectionWorld {
 		plugin = plugin_;
 		world = world_;
 		zones = new ArrayList<AntiGriefZoneProtectionZone>();
+		inside = new HashMap<String, String>();
 	}
 	
 	public boolean access(Player player_, String node_, Location location_, int item_, boolean suppress_) throws AntiGriefZoneProtectionException {
 		for(AntiGriefZoneProtectionZone zone : this.zones) {
 			if (zone.inside(location_.getBlockX(), location_.getBlockY(), location_.getBlockZ())) {
+				if (inside.containsKey(player_.getName())) {
+					if (!inside.get(player_.getName()).equals(zone.getName())) {
+						String msg = zone.getMessage();
+						if (!msg.equals(""))
+							player_.sendMessage(zone.getMessage());
+					}
+				}
+				inside.put(player_.getName(), zone.getName());
 				return zone.access(player_, node_, item_, suppress_);
 			}
 		}
@@ -78,6 +89,24 @@ public class AntiGriefZoneProtectionWorld {
 		return false;
 	}
 	
+	public boolean visulize(Player player_, String zone_) {
+		for (AntiGriefZoneProtectionZone zone : zones) {
+			if (zone.getName().equals(zone_)) {
+				if (!zone.isVisulized()) {
+					if (!zone.isCompatible()) {
+						player_.sendMessage("Unable to build zone visulization!");
+						return true;
+					} 
+					zone.showVisulization();
+				}
+				else zone.hideVisulization();
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	public boolean addZone(AntiGriefZoneProtectionZone zone_) {
 		zone_.finalize();
 		String parent = zone_.getParent();
@@ -93,6 +122,15 @@ public class AntiGriefZoneProtectionWorld {
 			}
 		}
 		return false;
+	}
+	
+	public AntiGriefZoneProtectionZone getZone(String zone_) {
+		for (AntiGriefZoneProtectionZone zone : zones) {
+			if (zone.getName().equals(zone_)) {
+				return zone;
+			}
+		}
+		return null;
 	}
 	
 	public String getName() {

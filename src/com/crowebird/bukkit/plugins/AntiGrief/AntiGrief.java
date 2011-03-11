@@ -26,118 +26,99 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief;
+/*
+ * Using CraftBukkit 527+
+ * (Bukkit 451+)
+ * 
+ * With Permissions:
+ * - GroupManager 1.0 alpha 5
+ * - Permissions 2.5.2
+*/
+
+package com.crowebird.bukkit.plugins.AntiGrief;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.plugin.PluginManager;
 
-import com.crowebird.bukkit.BukkitPlugin;
-import com.crowebird.bukkit.AntiGrief.ZoneProtection.AntiGriefZoneProtection;
-import com.crowebird.bukkit.AntiGrief.ZoneProtection.AntiGriefZoneProtectionException;
-import com.crowebird.bukkit.util.Config;
+import com.crowebird.bukkit.plugins.BukkitPlugin;
+import com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection.AntiGriefZoneProtection;
+import com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection.AntiGriefZoneProtectionException;
+import com.crowebird.bukkit.plugins.util.config.Config;
+import com.crowebird.bukkit.plugins.util.config.ConfigTemplate;
+import com.crowebird.bukkit.plugins.util.config.cast.ConfigArrayListInteger;
+import com.crowebird.bukkit.plugins.util.config.cast.ConfigArrayListString;
 
 public class AntiGrief extends BukkitPlugin {
-	
-	//Bukkit 493+ //Bukkit 432+ //GroupManager 1.0 pre-alpha 2	
 	private AntiGriefBlockListener blockListener;
 	private AntiGriefPlayerListener playerListener;
 	private AntiGriefEntityListener entityListener;
-	//private AntiGriefInventoryListener inventoryListener = new AntiGriefInventoryListener(this);
 	private AntiGriefVehicleListener vehicleListener;
-	
+
 	protected AntiGriefZoneProtection zoneProtection;
 	
-	protected Config.Type config;
-	private Config.Type default_config_config;
-	private Config.Type default_world_config;
-	private Config.Type default_zone_config;
-	private HashMap<String, Long> delay;
+	private HashMap<String, Long> message_delay;
+	private HashMap<String, Config> configs;
+	
+	private ConfigTemplate template_settings;
+	private ConfigTemplate template_world;
+	private ConfigTemplate template_zone;
 	
 	public AntiGrief() {
-		super(true);
+		super("AntiGrief", "0.8.1.1", true);
 		
 		blockListener = new AntiGriefBlockListener(this);
 		playerListener = new AntiGriefPlayerListener(this);
 		entityListener = new AntiGriefEntityListener(this);
-		//inventoryListener = new AntiGriefInventoryListener(this);
 		vehicleListener = new AntiGriefVehicleListener(this);
 		
-		config = new Config.Type();
-		default_config_config = new Config.Type();
-		default_world_config = new Config.Type();
-		default_zone_config = new Config.Type();
+		message_delay = new HashMap<String, Long>();
+				
+		template_settings = new ConfigTemplate();
+		template_settings.put("priority", "lowest");
+		template_settings.put("message.access", "You are not allowed to perfrom that action!");
+		template_settings.put("message.command", "You are not allowed to use that command!");
+		template_settings.put("message.delay", 5);
+		template_settings.put("zones.enable", true);
+		template_settings.put("zones.tool", 280);
 		
-		String clevel = "lowest";
-		String camessage = "You are not allowed to perform that action!";
-		String ccmessage = "You are not allowed to use that command!";
-		int cdelay = 5;
-		int ctool = 280;
-		boolean czones = true;
+		template_world = new ConfigTemplate();
+		template_world.put("nodes.buildfalse", new ConfigArrayListString(
+			"block.damage",
+			"block.place",
+			"block.interact",
+			"block.ignite",
+			"entity.creeper",
+			"player.damage.cause",
+			"player.item.use",
+			"player.item.pickup",
+			"vehicle.use",
+			"vehicle.move"
+		));
+		template_world.put("nodes.buildtrue", new ConfigArrayListString());
+		template_world.put("allow.interact", new ConfigArrayListInteger(64));
+		template_world.put("allow.item", new ConfigArrayListInteger());
+		template_world.put("allow.block", new ConfigArrayListInteger());
 		
-		default_config_config.put("priority", clevel);
-		default_config_config.put("message.access", camessage);
-		default_config_config.put("message.command", ccmessage);
-		default_config_config.put("message.delay", cdelay);
-		default_config_config.put("zones.enable", czones);
-		default_config_config.put("zones.tool", ctool);
-		
-		Config.ALString cbuildfalse = new Config.ALString();
-		cbuildfalse.add("block.damage");
-		cbuildfalse.add("block.place");
-		cbuildfalse.add("block.interact");
-		cbuildfalse.add("block.ignite");
-		
-		cbuildfalse.add("entity.creeper");
-		
-		cbuildfalse.add("player.damage.cause");
-		cbuildfalse.add("player.item.use");
-		cbuildfalse.add("player.item.pickup");
-		
-		cbuildfalse.add("vehicle.use");
-		cbuildfalse.add("vehicle.move");
-		
-		Config.ALString cbuildtrue = new Config.ALString();
-		
-		Config.ALInteger cinteract = new Config.ALInteger();
-		cinteract.add(64);
-		
-		Config.ALInteger citem = new Config.ALInteger();
-		Config.ALInteger cblock = new Config.ALInteger();
-
-		default_world_config.put("nodes.buildfalse", cbuildfalse);
-		default_world_config.put("nodes.buildtrue", cbuildtrue);
-		default_world_config.put("allow.interact", cinteract);
-		default_world_config.put("allow.item", citem);
-		default_world_config.put("allow.block", cblock);
-		
-		String zcreator = "";
-		String zparent = "";
-		Config.ALString zpoints = new Config.ALString();
-		Config.ALInteger gzitem = new Config.ALInteger();
-		Config.ALInteger gzinteract = new Config.ALInteger();
-		Config.ALInteger gzblock = new Config.ALInteger();
-		Config.ALInteger uzitem = new Config.ALInteger();
-		Config.ALInteger uzinteract = new Config.ALInteger();
-		Config.ALInteger uzblock = new Config.ALInteger();
-		Config.ALString gzprevent = new Config.ALString();
-		Config.ALString uzprevent = new Config.ALString();
-		
-		default_zone_config.put("creator", zcreator);
-		default_zone_config.put("parent", zparent);
-		default_zone_config.put("points", zpoints);
-		default_zone_config.put("groups.*.allow.item", gzitem);
-		default_zone_config.put("groups.*.allow.interact", gzinteract);
-		default_zone_config.put("groups.*.allow.block", gzblock);
-		default_zone_config.put("groups.*.nodes.prevent", gzprevent);
-		default_zone_config.put("users.*.allow.item", uzitem);
-		default_zone_config.put("users.*.allow.interact", uzinteract);
-		default_zone_config.put("users.*.allow.block", uzblock);
-		default_zone_config.put("users.*.nodes.prevent", uzprevent);
+		template_zone = new ConfigTemplate();
+		template_zone.put("creator", "");
+		template_zone.put("parent", "");
+		template_zone.put("points", new ConfigArrayListString());
+		template_zone.put("message.enter", "");
+		template_zone.put("groups.*.allow.item", new ConfigArrayListInteger());
+		template_zone.put("groups.*.allow.interact", new ConfigArrayListInteger());
+		template_zone.put("groups.*.allow.block", new ConfigArrayListInteger());
+		template_zone.put("groups.*.nodes.prevent", new ConfigArrayListString());
+		template_zone.put("users.*.allow.item", new ConfigArrayListInteger());
+		template_zone.put("users.*.allow.interact", new ConfigArrayListInteger());
+		template_zone.put("users.*.allow.block", new ConfigArrayListInteger());
+		template_zone.put("users.*.nodes.prevent", new ConfigArrayListString());
 	}
 	
 	public void onEnable() {
@@ -149,34 +130,39 @@ public class AntiGrief extends BukkitPlugin {
 	}
 	
 	public void buildConfig() {
-		delay = new HashMap<String, Long>();
-		config = new Config.Type();
+		configs = new HashMap<String, Config>();
 		
-		config.putAll(Config.getConfig(pdf.getName(), getDataFolder().toString(), "config", default_config_config, true, false));
-		config.putAll(Config.getConfig(pdf.getName(), getDataFolder().toString(), "default", default_world_config, true, false));
-		
-		try {
-			File files[] = (new File(getDataFolder().toString())).listFiles();
-			if (files != null) {
-				for (File file : files) {
-					if (!file.isFile()) continue;
-					String name = file.getName();
-					int extension = name.lastIndexOf(".");
-					name = name.substring(0, (extension == -1 ? name.length() : extension));
-					if (name.equals("config") || name.equals("default")) continue;
-					config.putAll(Config.getConfig(pdf.getName(), getDataFolder().toString(), name, default_world_config, false, false));
-				}
+		configs.put("settings", new Config(getDataFolder().toString(), "settings", template_settings));
+		configs.put("default", new Config(getDataFolder().toString(), "default", template_world));
+
+		File files[] = (new File(getDataFolder().toString())).listFiles();
+		if (files != null) {
+			for (File file : files) {
+				if (!file.isFile()) continue;
+				String name = file.getName();
+				int extension = name.lastIndexOf(".");
+				name = name.substring(0, (extension == -1 ? name.length() : extension));
+				if (name.equals("config") || name.equals("default")) continue;
+				configs.put("world." + name, new Config(getDataFolder().toString(), name, template_zone));
 			}
-		} catch (Exception ex) { System.out.println(ex.toString()); }
+		}
+
+		for(String key : configs.keySet()) {
+			try {
+				configs.get(key).load();
+			} catch (IOException ex) {
+				//Handle unable to load file here!
+			}
+		}
 		
-		if (config.get("config.zones.enable").equals(false)) return;
-		zoneProtection.load(default_zone_config);
+		if (configs.get("settings").getValue("config.zones.enable").equals(true)) 
+			zoneProtection.load(template_zone);
 	}
 	
 	protected void registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
 		Event.Priority compile_level = Event.Priority.Lowest;
-		String level = (String)config.get("config.priority");
+		String level = (String) getValue("settings", "priority");
 		if (level.equals("lowest")) compile_level = Event.Priority.Lowest;
 		else if (level.equals("low")) compile_level = Event.Priority.Low;
 		else if (level.equals("normal")) compile_level = Event.Priority.Normal;
@@ -202,6 +188,14 @@ public class AntiGrief extends BukkitPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, compile_level, this);
 	}
+	
+	public Object getValue(String key_, String path_) {
+		Config config = configs.get(key_);
+		return (config == null) ? null : config.getValue(path_);
+	}
+	
+	
+	
 		
 	protected boolean access(Player player_, String node_, Location location_) { return access(player_, node_, location_, -1); }
 	protected boolean access(Player player_, String node_, Location location_, int item_) { return access(player_, node_, location_, item_, false); }
@@ -209,7 +203,7 @@ public class AntiGrief extends BukkitPlugin {
 	protected boolean access(Player player_, String node_, Location location_, int item_, boolean supress_) {
 		if (player_ == null) return true;
 		
-		if (worldPermissions(player_).has(player_, "antigrief.admin")) return true;
+		if (has(player_, "antigrief.admin")) return true;
 		
 		boolean permission = false;
 		boolean zoned = false;
@@ -231,8 +225,8 @@ public class AntiGrief extends BukkitPlugin {
 			if (!canBuild && !Config.has(config, world, "nodes.buildfalse", node_, "default")) canBuild = true;
 			else if (canBuild && Config.has(config, world, "nodes.buildtrue", node_, "default")) canBuild = false;
 	
-			boolean prevent = worldPermissions(player_).has(player_, "antigrief.prevent." + node_);
-			boolean allow = worldPermissions(player_).has(player_, "antigrief.allow." + node_);
+			boolean prevent = has(player_, "antigrief.prevent." + node_);
+			boolean allow = has(player_, "antigrief.allow." + node_);
 
 			if (prevent ^ allow) permission = (canBuild && !prevent) || (!canBuild && allow);
 			else permission = canBuild;

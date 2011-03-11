@@ -26,7 +26,7 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief;
+package com.crowebird.bukkit.plugins.AntiGrief;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;

@@ -26,7 +26,7 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief.ZoneProtection;
+package com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection;
 
 public class AntiGriefZoneProtectionException extends Exception {
 	private static final long serialVersionUID = 2479L;

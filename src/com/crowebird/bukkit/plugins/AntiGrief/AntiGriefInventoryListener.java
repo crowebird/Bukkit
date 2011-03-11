@@ -26,47 +26,14 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief;
+package com.crowebird.bukkit.plugins.AntiGrief;
 
-import org.bukkit.entity.Creeper;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityListener;
-import org.bukkit.event.entity.EntityTargetEvent;
+public class AntiGriefInventoryListener {
 
-public class AntiGriefEntityListener extends EntityListener {
+	@SuppressWarnings("unused")
+	private AntiGrief plugin;
 	
-	private final AntiGrief plugin;
-	
-	public AntiGriefEntityListener(AntiGrief plugin_) {
+	public AntiGriefInventoryListener(AntiGrief plugin_) {
 		this.plugin = plugin_;
-	}
-	
-	public void onEntityTarget(EntityTargetEvent event_) {
-		if (event_.getEntity() instanceof Creeper) {
-			Entity target = (Entity)event_.getTarget();
-			if (target instanceof Player) {
-				if (!this.plugin.access((Player)target, "entity.creeper", target.getLocation(), true))
-					event_.setCancelled(true);
-			}
-		}
-	}
-	
-	public void onEntityDamage(EntityDamageEvent event_) {
-		Entity entity = event_.getEntity();
-		if (event_ instanceof EntityDamageByEntityEvent) {
-			EntityDamageByEntityEvent edbe = (EntityDamageByEntityEvent) event_;
-			Entity damager = edbe.getDamager();
-			if (damager instanceof Player) {
-				if (!this.plugin.access((Player)damager, "player.damage.cause", damager.getLocation()))
-					event_.setCancelled(true);
-			}
-		}
-		if (entity instanceof Player) {
-			if (!this.plugin.access((Player)entity, "player.damage.take." +  event_.getCause().toString().toLowerCase(), entity.getLocation()))
-				event_.setCancelled(true);
-		}
 	}
 }

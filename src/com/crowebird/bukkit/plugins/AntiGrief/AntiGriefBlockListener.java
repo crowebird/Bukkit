@@ -26,11 +26,13 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief;
+package com.crowebird.bukkit.plugins.AntiGrief;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockDamageLevel;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
@@ -90,25 +92,29 @@ public class AntiGriefBlockListener extends BlockListener {
 	
 	public void onBlockRightClick(BlockRightClickEvent event_) {
 		Player player = event_.getPlayer();
-		//int item = player.getItemInHand().getTypeId();
-		/*
-		if (!this.plugin.access(player, "block.place", item)) {
-			//event_.getDirection().
-			BlockFace face = event_.getDirection();
-			Block block = event_.getBlock();
-			block = block.getFace(face);
-			Block rel = block.getRelative(face);
-			System.out.println(face.toString());
-			System.out.println(rel.getTypeId());
-			System.out.println(block.getData());
-			System.out.println(block.getRawData());
-		}
-		*/
-		
 		String name = event_.getPlayer().getName();
+		
 		Location l = event_.getBlock().getLocation();
-		if (plugin.zoneProtection.isBuilding(name) && player.getItemInHand().getTypeId() == (Integer)plugin.config.get("config.zones.tool")) {
-			plugin.zoneProtection.addPoint(name, l.getBlockX(), l.getBlockZ());
+		BlockFace d = event_.getDirection();
+		int x = l.getBlockX();
+		int y = l.getBlockY();
+		int z = l.getBlockZ();
+		
+		Material type = event_.getBlock().getType();
+		if (type == Material.TORCH ||
+				type == Material.REDSTONE_TORCH_OFF ||
+				type == Material.REDSTONE_TORCH_ON) { }
+		else {
+			if (d == BlockFace.DOWN) --y;
+			if (d == BlockFace.UP) ++y;
+			if (d == BlockFace.NORTH) --x;
+			if (d == BlockFace.SOUTH) ++x;
+			if (d == BlockFace.WEST)++z;
+			if (d == BlockFace.EAST) --z;
+		}
+		
+		if (plugin.zoneProtection.isBuilding(name) && player.getItemInHand().getTypeId() == (Integer)plugin.getValue("settings", "config.zones.tool")) {
+			plugin.zoneProtection.addPoint(name, x, y, z);
 			player.sendMessage("Point added!");
 		}
 	}

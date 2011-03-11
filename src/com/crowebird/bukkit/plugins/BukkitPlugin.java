@@ -26,38 +26,45 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit;
+package com.crowebird.bukkit.plugins;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.anjocaido.groupmanager.GroupManager;
-import org.anjocaido.groupmanager.permissions.AnjoPermissionsHandler;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import com.nijiko.permissions.PermissionHandler;
+import com.nijikokun.bukkit.Permissions.Permissions;
 
 public abstract class BukkitPlugin extends JavaPlugin {
 
 	private final Logger logger;
 	private GroupManager gm;
+	private PermissionHandler p;
 	private boolean permissionsUse, permissionsRequired;
 	
-	public PluginDescriptionFile pdf;
+	private String name, version;
 
 	/**
 	 * Sets up a BukkitPlugin without permissions.
+	 * 
+	 * @param name_ Name of the plugin
+	 * @param version_ Version number of the plugin
 	 */
-	public BukkitPlugin() {
+	public BukkitPlugin(String name_, String version_) {
 		logger = Logger.getLogger("Minecraft");
 		
 		gm = null;
+		p = null;
 		
 		permissionsUse = false;
 		permissionsRequired = false;
 		
-		pdf = getDescription();
+		name = name_;
+		version = version_;
 	}
 	/**
 	 * Sets up a BukkitPlugin with permissions.
@@ -66,10 +73,12 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	 * if permissionsRequired_ is given true, otherwise
 	 * it will enable properly as if permissions is not being used.
 	 * 
-	 * @param permissionsRequired_
+	 * @param name_ Name of the plugin
+	 * @param version_ Version number of the plugin
+	 * @param permissionsRequired_ Boolean if permissions are required or not
 	 */
-	public BukkitPlugin(boolean permissionsRequired_) { 
-		this();
+	public BukkitPlugin(String name_, String version_, boolean permissionsRequired_) { 
+		this(name_, version_);
 		permissionsUse = true;
 		permissionsRequired = permissionsRequired_;
 	}
@@ -87,7 +96,7 @@ public abstract class BukkitPlugin extends JavaPlugin {
 			if (!setupPermissions())
 				return;
 		registerEvents();
-		log("Version " + getDescription().getVersion() + " Enabled!");
+		log("Version " + version + " Enabled!");
 	};
 	
 	/**
@@ -104,22 +113,40 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	
 	protected abstract void registerEvents();
 	
+	/**
+	 * Gets the name of the plugin.
+	 * 
+	 * @return The name of the plugin
+	 */
+	public String getName() {
+		return name;
+	};
+	
+	/**
+	 * Gets the version number of the plugin.
+	 * 
+	 * @return The version number of the plugin
+	 */
+	public String getVersion() {
+		return version;
+	};
+	
 	/* Logging */
 	
 	/**
 	 * General purpose logging of message_ at the INFO level.
 	 * 
-	 * @param message_ message to log
+	 * @param message_ Message to log
 	 */
 	public void log(String message_) { log(Level.INFO, message_); };
 	/**
 	 * General purpose logging of message_ at the level_ level.
 	 * 
-	 * @param level_ level to log the message at
-	 * @param message_ message to log
+	 * @param level_ Level to log the message at
+	 * @param message_ Message to log
 	 */
 	public void log(Level level_, String message_) {
-		logger.log(level_, getDescription().getName() + " - " + message_);
+		logger.log(level_, name + " - " + message_);
 	};
 	
 	/* Permissions */
@@ -137,6 +164,14 @@ public abstract class BukkitPlugin extends JavaPlugin {
 				getServer().getPluginManager().enablePlugin(permissions);
 			gm = (GroupManager) permissions;
 			return true;
+		} else {
+			permissions = getServer().getPluginManager().getPlugin("Permissions");
+			if (permissions != null) {
+				if (!permissions.isEnabled())
+					getServer().getPluginManager().enablePlugin(permissions);
+				p = ((Permissions)permissions).getHandler();
+				return true;
+			}
 		}
 		if (permissionsRequired)
 			return true;
@@ -146,41 +181,47 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	};
 	
 	/**
-	 * Gives the permissions handler for permissions.
+	 * Determines if the given player_ has permissions
+	 * on node_
 	 * 
-	 * @param player_
-	 * @return The permission handler for player_ if it exists,
-	 * and permissions is enabled, null otherwise
+	 * @param player_ The player to check permissions on
+	 * @param node_ The node path of the permission
+	 * @return True if the player has permissions, false otherwise.
+	 * If for some reason no permission handler found return true
 	 */
-	public AnjoPermissionsHandler worldPermissions(Player player_) {
-		if (gm == null) return null;
-		return gm.getWorldsHolder().getWorldPermissions(player_);
-	};
+	public boolean has(Player player_, String node_) {
+		if (gm != null) return gm.getWorldsHolder().getWorldPermissions(player_).has(player_, node_);
+		else if (p != null) return p.has(player_, node_);
+		return true;
+	}
 	
 	/**
 	 * Gives the group of the given player_.
 	 * 
-	 * @param player_
+	 * @param player_ The player we are checking permissions on
 	 * @return Group of player_ if it exists and permissions
 	 * is enabled, null otherwise
 	 */
 	public String getGroup(Player player_) {
-		if (gm == null) return null;
-		return worldPermissions(player_).getGroup(player_.getName());		
+		if (gm != null) return gm.getWorldsHolder().getWorldPermissions(player_).getGroup(player_.getName());		
+		else if (p != null) return p.getGroup(player_.getWorld().getName(), player_.getName());
+		return null;
 	};
 	
 	/**
 	 * Determines if the player_ in group_ has build rights.
 	 * 
-	 * @param player_
-	 * @param group_
+	 * @param player_ The player we are checking permissions on
+	 * @param group_ The name of the group of the player we are checking
+	 * permissions on
 	 * @return true if they have build rights or if permisisons
 	 * are not enabled, false otherwise
 	 */
 	public boolean canGroupBuild(Player player_, String group_) {
-		if (gm == null) return true;
-		if (group_ != null)
-			return worldPermissions(player_).canGroupBuild(group_);
-		return false;
+		if (group_ != null) {
+			if (gm != null) return gm.getWorldsHolder().getWorldPermissions(player_).canGroupBuild(group_);
+			else if (p != null) return p.canGroupBuild(player_.getWorld().getName(), player_.getName());
+		}
+		return true;
 	};
 }

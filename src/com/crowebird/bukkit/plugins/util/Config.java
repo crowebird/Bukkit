@@ -26,7 +26,7 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.util;
+package com.crowebird.bukkit.plugins.util;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -175,9 +175,11 @@ public class Config {
 		file_ += ".yml";
 		try {
 			File f = new File(path_ + File.separator + file_);
+			boolean exists = false;
 			if (!f.exists()) {
 				new File(path_).mkdir();
 				f.createNewFile();
+				exists = true;
 			}
 			
 			BufferedWriter out = new BufferedWriter(new FileWriter(path_ + File.separator + file_));
@@ -218,7 +220,7 @@ public class Config {
 			
 			out.flush();
 			out.close();
-			Config.log.info(plugin_ + " - Configuration file created [" + path_ + File.separator + file_ + "]!");
+			if (!exists) Config.log.info(plugin_ + " - Configuration file created [" + path_ + File.separator + file_ + "]!");
 		} catch (Exception ex) {
 			Config.log.warning(plugin_ + " - Unable to properly create config [" + path_ + File.separator + file_ + "]!");
 		}

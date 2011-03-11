@@ -1,5 +1,5 @@
 name: AntiGrief
-main: com.crowebird.bukkit.AntiGrief.AntiGrief
+main: com.crowebird.bukkit.plugins.AntiGrief.AntiGrief
 version: 0.8.1.1
 
 commands:

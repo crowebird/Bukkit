@@ -26,49 +26,75 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.AntiGrief.ZoneProtection;
+package com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection;
 
 import java.awt.Polygon;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Set;
 
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.World;
 
-import com.crowebird.bukkit.AntiGrief.AntiGrief;
-import com.crowebird.bukkit.util.Config;
+import com.crowebird.bukkit.plugins.AntiGrief.AntiGrief;
+import com.crowebird.bukkit.plugins.util.config.Config;
 
 public class AntiGriefZoneProtectionZone {
 
 	private final AntiGrief plugin;
 	private Polygon poly;
-	private ArrayList<String> groups, users;
+	private ArrayList<String> groups, users, points;
+	private HashMap<String, AntiGriefZoneProtectionVisulize> visulize;
 	
 	private String parent, name, creator, world;
+	private String message;
 	
 	@SuppressWarnings("unused")
-	private int baseY, verticalDown, verticalUp, points;
+	private int baseY, verticalDown, verticalUp, numPoints;
 
-	private boolean finalized;
+	private boolean finalized, visulized;
 	
-	private Config.Type config;
+	private Config config;
+	
+	private boolean compatibility;
 	
 	@SuppressWarnings("unchecked")
-	public AntiGriefZoneProtectionZone(AntiGrief plugin_, String name_, Config.Type config_, String world_) {
+	public AntiGriefZoneProtectionZone(AntiGrief plugin_, String name_, Config config_, String world_) {
 		plugin = plugin_;
 		
-		init(name_, (String)config_.get("creator"), (String)config_.get("parent"), world_);
+		init(name_, (String)config_.getValue("creator"), (String)config_.getValue("parent"), world_);
 		
 		if (config_.containsKey("points")) {
 			ArrayList<String> points = (ArrayList<String>) config_.get("points");
 			for (String point : points) {
 				String cord[] = point.split("\\,");
-				if (cord.length != 2) continue;
-				poly.addPoint(Integer.parseInt(cord[0]), Integer.parseInt(cord[1]));
+				//BACKWARD COMPATIBILITY for zones without y values
+				if (cord.length == 2) {
+					poly.addPoint(Integer.parseInt(cord[0]), Integer.parseInt(cord[1]));
+					compatibility = false;
+				}
+				else if (cord.length == 3) poly.addPoint(Integer.parseInt(cord[0]), Integer.parseInt(cord[2]));
+				else continue;
+				
+				int x = 0;
+				int y = 0;
+				int z = 0;
+				x = Integer.parseInt(cord[0]);
+				try {
+					y = Integer.parseInt(cord[1]);
+					z = Integer.parseInt(cord[2]);
+				} catch (Exception ex) {
+					z = Integer.parseInt(cord[1]);
+					y = 0;
+				}
+				AntiGriefZoneProtectionVisulize v = new AntiGriefZoneProtectionVisulize(x, y, z);
+				visulize.put(x + "," + y + "," + z, v);
 			}
 		}
 
-		Set<String> keys = config_.keySet();
+		Set<String> keys = config_.getKeys();
 		for(String key : keys) {
 			String type[] = key.split("\\.");
 			
@@ -79,6 +105,8 @@ public class AntiGriefZoneProtectionZone {
 					users.add(type[1]);
 			}
 		}
+		
+		if (config_.containsKey("message")) message = (String) config_.get("message");
 		
 		if (!users.contains(creator)) users.add(creator);
 		
@@ -93,12 +121,10 @@ public class AntiGriefZoneProtectionZone {
 		config.put("creator", creator);
 		
 		users.add(creator_);
-		
-		finalized = false;
 	}
 	
 	public int getPoints() {
-		return points;
+		return numPoints;
 	}
 	
 	private void init(String name_, String creator_, String parent_, String world_) {
@@ -111,14 +137,22 @@ public class AntiGriefZoneProtectionZone {
 		poly = new Polygon();
 		groups = new ArrayList<String>();
 		users = new ArrayList<String>();
+		points = new ArrayList<String>();
+		visulize = new HashMap<String, AntiGriefZoneProtectionVisulize>();
 		
 		world = world_;
 		baseY = 0;
 		verticalDown = 0;
 		verticalUp = 0;
-		finalized = false;
 		
-		points = 0;
+		message = "";
+		
+		finalized = false;
+		visulized = false;
+		
+		compatibility = true;
+		
+		numPoints = 0;
 	}
 	
 	public String getParent() {
@@ -133,23 +167,80 @@ public class AntiGriefZoneProtectionZone {
 		return world;
 	}
 	
+	public void hideVisulization() {
+		World w = plugin.getServer().getWorld(world);
+		
+		Set<String> keys = visulize.keySet();
+		for(String key : keys) {
+			AntiGriefZoneProtectionVisulize v = visulize.get(key);
+			if (v.getVisible()) {
+				Block b = w.getBlockAt(v.getX(), v.getY(), v.getZ());
+				int id = v.getTypeId();
+				b.setTypeId(id);
+				b.setType(v.getType());
+				b.setData(v.getData());
+				
+				if (id == 64 || id == 71) {
+				}
+				
+				v.setVisible(false);
+			}
+		}
+		
+		visulized = false;
+	}
+	
+	public void showVisulization() {
+		World w = plugin.getServer().getWorld(world);
+		Set<String> keys = visulize.keySet();
+		for(String key : keys) {
+			AntiGriefZoneProtectionVisulize v = visulize.get(key);
+			if (!v.getVisible()) {
+				Block b = w.getBlockAt(v.getX(), v.getY(), v.getZ());
+				v.setData(b.getData());
+				v.setType(b.getType());
+				v.setTypeId(b.getTypeId());
+				b.setTypeId(35);
+				b.setData(new Byte("14"));
+				v.setVisible(true);
+			}
+		}
+		
+		visulized = true;
+	}
+	
+	public boolean isCompatible() {
+		return compatibility;
+	}
+	
+	public boolean isVisulized() {
+		return visulized;
+	}
+	
 	public boolean inside(int x_, int y_, int z_) {
 		if (!finalized) return false;
 		return /*y_ <= baseY + verticalUp && y_ >= baseY - verticalDown &&*/ poly.contains(x_, z_);
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void addPoint(int x_, int z_) {
+	public void addPoint(int x_, int y_, int z_) {
 		poly.addPoint(x_, z_);
+		String key = x_ + "," + y_ + "," + z_;
+		points.add(key);
 		if (config.containsKey("points")) {
 			ArrayList<String> points = (ArrayList<String>)config.get("points");
-			points.add(x_ + "," + z_);
+			points.add(key);
 		} else {
 			ArrayList<String> points = new ArrayList<String>();
-			points.add(x_ + "," + z_);
+			points.add(key);
 			config.put("points", points);
 		}
-		++points;
+		++numPoints;
+		
+		AntiGriefZoneProtectionVisulize v = new AntiGriefZoneProtectionVisulize(x_, y_, z_);
+		visulize.put(key, v);
+		
+		showVisulization();
 	}
 	
 	public void finalize() {
@@ -194,16 +285,28 @@ public class AntiGriefZoneProtectionZone {
 		return Config.has(config, prefix_ + "." + node, item_);
 	}
 	
-	public void addGroup() {
-		
+	public boolean addGroup(String group_) {
+		return true;
 	}
 	
-	public void addUser() {
-		
+	public boolean addUser(String user_) {
+		return true;
+	}
+	
+	public boolean removeUser(String user_) {
+		return true;
+	}
+	
+	public boolean removeGroup(String group_) {
+		return true;
 	}
 	
 	private void write() {
 		System.out.println(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world);
-		Config.create(plugin.pdf.getName(), plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, config);
+		Config.create(plugin.getName(), plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, config);
+	}
+	
+	public String getMessage() {
+		return message;
 	}
 }
