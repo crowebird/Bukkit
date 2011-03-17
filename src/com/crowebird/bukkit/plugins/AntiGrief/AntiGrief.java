@@ -40,7 +40,6 @@ package com.crowebird.bukkit.plugins.AntiGrief;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Set;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -64,14 +63,13 @@ public class AntiGrief extends BukkitPlugin {
 	protected AntiGriefZoneProtection zoneProtection;
 	
 	private HashMap<String, Long> message_delay;
-	private HashMap<String, Config> configs;
 	
 	private ConfigTemplate template_settings;
 	private ConfigTemplate template_world;
 	private ConfigTemplate template_zone;
 	
 	public AntiGrief() {
-		super("AntiGrief", "0.8.1.1", true);
+		super("AntiGrief", "0.9", true);
 		
 		blockListener = new AntiGriefBlockListener(this);
 		playerListener = new AntiGriefPlayerListener(this);
@@ -123,17 +121,14 @@ public class AntiGrief extends BukkitPlugin {
 	
 	public void onEnable() {
 		zoneProtection = new AntiGriefZoneProtection(this);
-		buildConfig();	
 		getCommand("ag").setExecutor(new AntiGriefCommand(this));
 		
 		super.onEnable();
 	}
 	
-	public void buildConfig() {
-		configs = new HashMap<String, Config>();
-		
-		configs.put("settings", new Config(getDataFolder().toString(), "settings", template_settings));
-		configs.put("default", new Config(getDataFolder().toString(), "default", template_world));
+	public void buildConfig() {		
+		configs.put("settings", new Config(this, getDataFolder().toString(), "settings", template_settings));
+		configs.put("default", new Config(this, getDataFolder().toString(), "default", template_world));
 
 		File files[] = (new File(getDataFolder().toString())).listFiles();
 		if (files != null) {
@@ -143,33 +138,36 @@ public class AntiGrief extends BukkitPlugin {
 				int extension = name.lastIndexOf(".");
 				name = name.substring(0, (extension == -1 ? name.length() : extension));
 				if (name.equals("config") || name.equals("default")) continue;
-				configs.put("world." + name, new Config(getDataFolder().toString(), name, template_zone));
+				configs.put("world." + name, new Config(this, getDataFolder().toString() + File.separator + "world", name, template_zone));
 			}
 		}
 
 		for(String key : configs.keySet()) {
+			Config config = configs.get(key);
 			try {
-				configs.get(key).load();
+				config.load();
 			} catch (IOException ex) {
-				//Handle unable to load file here!
+				config.create();
 			}
 		}
 		
-		if (configs.get("settings").getValue("config.zones.enable").equals(true)) 
+		if (configs.get("settings").getValue("zones.enable").equals(true)) 
 			zoneProtection.load(template_zone);
 	}
 	
 	protected void registerEvents() {
 		PluginManager pm = getServer().getPluginManager();
-		Event.Priority compile_level = Event.Priority.Lowest;
-		String level = (String) getValue("settings", "priority");
-		if (level.equals("lowest")) compile_level = Event.Priority.Lowest;
-		else if (level.equals("low")) compile_level = Event.Priority.Low;
-		else if (level.equals("normal")) compile_level = Event.Priority.Normal;
-		else if (level.equals("high")) compile_level = Event.Priority.High;
-		else if (level.equals("highest")) compile_level = Event.Priority.Highest;
 		
-		log("Using the " + compile_level.toString() + " priority level.");
+		String level = (String) getValue("settings", "priority");
+		Event.Priority compile_level = Event.Priority.Lowest;
+		if (level.equals("low"))
+			compile_level = Event.Priority.Low;
+		else if (level.equals("normal"))
+			compile_level = Event.Priority.Normal;
+		else if (level.equals("high"))
+			compile_level = Event.Priority.High;
+		else if (level.equals("highest"))
+			compile_level = Event.Priority.Highest;
 		
 		pm.registerEvent(Event.Type.BLOCK_DAMAGED, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACED, blockListener, compile_level, this);
@@ -187,28 +185,20 @@ public class AntiGrief extends BukkitPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vehicleListener, compile_level, this);
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vehicleListener, compile_level, this);
-	}
-	
-	public Object getValue(String key_, String path_) {
-		Config config = configs.get(key_);
-		return (config == null) ? null : config.getValue(path_);
-	}
-	
-	
-	
 		
-	protected boolean access(Player player_, String node_, Location location_) { return access(player_, node_, location_, -1); }
-	protected boolean access(Player player_, String node_, Location location_, int item_) { return access(player_, node_, location_, item_, false); }
-	protected boolean access(Player player_, String node_, Location location_, boolean supress_) { return access(player_, node_, location_, -1, supress_); }
+		
+		log("Using the " + compile_level.toString() + " priority level.");
+	}
+
 	protected boolean access(Player player_, String node_, Location location_, int item_, boolean supress_) {
 		if (player_ == null) return true;
 		
-		if (has(player_, "antigrief.admin")) return true;
+		if (hasPermission(player_, "antigrief.admin")) return true;
 		
 		boolean permission = false;
 		boolean zoned = false;
 		
-		if (config.get("config.zones.enable").equals(true)) {
+		if (getValue("settings", "zones.enable").equals(true)) {
 			try {
 				permission = zoneProtection.access(player_, node_, location_, item_, supress_);
 				zoned = true;
@@ -217,16 +207,17 @@ public class AntiGrief extends BukkitPlugin {
 		
 		if (!zoned) {
 			String world = player_.getWorld().getName();
+			String config = "world." + world;
 			
 			String group = getGroup(player_);
 			boolean canBuild = canGroupBuild(player_, group);
 			
 			if (group == null) return false;
-			if (!canBuild && !Config.has(config, world, "nodes.buildfalse", node_, "default")) canBuild = true;
-			else if (canBuild && Config.has(config, world, "nodes.buildtrue", node_, "default")) canBuild = false;
+			if (!canBuild && !hasValue(config, "nodes.buildfalse", node_, "default")) canBuild = true;
+			else if (canBuild && hasValue(config, "nodes.buildtrue", node_, "default")) canBuild = false;
 	
-			boolean prevent = has(player_, "antigrief.prevent." + node_);
-			boolean allow = has(player_, "antigrief.allow." + node_);
+			boolean prevent = hasPermission(player_, "antigrief.prevent." + node_);
+			boolean allow = hasPermission(player_, "antigrief.allow." + node_);
 
 			if (prevent ^ allow) permission = (canBuild && !prevent) || (!canBuild && allow);
 			else permission = canBuild;
@@ -235,28 +226,30 @@ public class AntiGrief extends BukkitPlugin {
 		}
 		
 		if (!permission && !supress_) {
-			int delay = (Integer)config.get("config.message.delay");
-			int min_delay = (Integer)default_config_config.get("message.delay");
+			int delay = (Integer) getValue("settings", "message.delay");
+			int min_delay = (Integer) template_settings.get("message.delay");
 			if (delay < min_delay) delay = min_delay;
-			String msg = (String)config.get("config.message.access");
+			String msg = (String) getValue("settings", "message.access");
 			if (!msg.equals("")) {
 				long time = System.currentTimeMillis() / 1000;
 				long prev_time;
 				try {
-					prev_time = this.delay.get(player_.getName());
+					prev_time = message_delay.get(player_.getName());
 				} catch (Exception ex) { prev_time = 0; }
 				long diff = time - prev_time;
 				if (prev_time == 0 || diff > delay) {
 					player_.sendMessage(msg);
-					this.delay.put(player_.getName(), time);
+					message_delay.put(player_.getName(), time);
 				}
 			}
 		}
 		
 		return permission;
 	}
+	protected boolean access(Player player_, String node_, Location location_) { return access(player_, node_, location_, -1); }
+	protected boolean access(Player player_, String node_, Location location_, int item_) { return access(player_, node_, location_, item_, false); }
+	protected boolean access(Player player_, String node_, Location location_, boolean supress_) { return access(player_, node_, location_, -1, supress_); }
 	
-	public boolean allowItem(String world_, String node_, int item_) { return allowItem(world_, node_, item_, "default"); }
 	public boolean allowItem(String world_, String node_, int item_, String alternative_) {
 		String node;
 		if (node_.equals("block.interact")) node = "allow.interact";
@@ -264,6 +257,7 @@ public class AntiGrief extends BukkitPlugin {
 		else if (node_.equals("player.item.pickup") || node_.equals("player.item.use")) node = "allow.item";
 		else return false;
 		
-		return Config.has(config, world_, node, item_, alternative_);
+		return hasValue("world." + world_, node, item_, "default");
 	}
+	public boolean allowItem(String world_, String node_, int item_) { return allowItem(world_, node_, item_, "default"); }
 }

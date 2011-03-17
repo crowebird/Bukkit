@@ -29,7 +29,7 @@ or implied, of Michael Crowe.
 package com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection;
 
 public class AntiGriefZoneProtectionException extends Exception {
-	private static final long serialVersionUID = 2479L;
+	private static final long serialVersionUID = 3703907511119157278L;
 	
 	public AntiGriefZoneProtectionException() { /**/ }
 	public AntiGriefZoneProtectionException(String msg_) { super(msg_); }

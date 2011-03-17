@@ -28,6 +28,7 @@ or implied, of Michael Crowe.
 
 package com.crowebird.bukkit.plugins;
 
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +37,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.crowebird.bukkit.plugins.util.config.Config;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
 
@@ -44,7 +46,9 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	private final Logger logger;
 	private GroupManager gm;
 	private PermissionHandler p;
-	private boolean permissionsUse, permissionsRequired;
+	private boolean permissionsUse, permissionsRequire;
+	
+	protected HashMap<String, Config> configs;
 	
 	private String name, version;
 
@@ -61,10 +65,12 @@ public abstract class BukkitPlugin extends JavaPlugin {
 		p = null;
 		
 		permissionsUse = false;
-		permissionsRequired = false;
+		permissionsRequire = false;
 		
 		name = name_;
 		version = version_;
+		
+		configs = new HashMap<String, Config>();
 	}
 	/**
 	 * Sets up a BukkitPlugin with permissions.
@@ -80,7 +86,7 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	public BukkitPlugin(String name_, String version_, boolean permissionsRequired_) { 
 		this(name_, version_);
 		permissionsUse = true;
-		permissionsRequired = permissionsRequired_;
+		permissionsRequire = permissionsRequired_;
 	}
 	
 	/* JavaPlugin */
@@ -95,6 +101,7 @@ public abstract class BukkitPlugin extends JavaPlugin {
 		if (permissionsUse) 
 			if (!setupPermissions())
 				return;
+		buildConfig();
 		registerEvents();
 		log("Version " + version + " Enabled!");
 	};
@@ -111,7 +118,57 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	
 	/* BukkitPlugin */
 	
+	/**
+	 * Function to override that sets up the events to register
+	 * for this plugin.
+	 */
 	protected abstract void registerEvents();
+	
+	/**
+	 * Function to override that builds the configuration files
+	 * for this plugin.
+	 */
+	protected abstract void buildConfig();
+	
+	/**
+	 * Gets the value from the configuration file config_ at the specified
+	 * key path path_
+	 * 
+	 * @param config_ The name of the configuration file
+	 * @param path_ The key path to check
+	 * @return The value of the key path path_ if config_ exists, null otherwise
+	 */
+	public Object getValue(String config_, String path_) {
+		Config config = configs.get(config_);
+		if (config == null) return null;
+		return config.getValue(path_);
+	}
+	
+	/**
+	 * See if configuration file config_ has value_ at key path path_, if specified, will check
+	 * alternative_config_ instead if config_ does not exist.
+	 * 
+	 * @param config_ The name of the configuration file to check
+	 * @param path_ The key path of the value
+	 * @param value_ The value to compare
+	 * @param alternative_config_ The name of the alternative configuration file to check (optional)
+	 * @return True if the value is found, false otherwise
+	 */
+	public boolean hasValue(String config_, String path_, Object value_, String alternative_config_) {
+		Config config = configs.get(config_);
+		
+		if (config == null)  {
+			if (alternative_config_.equals("")) return false;
+			else {
+				config = configs.get(alternative_config_);
+				if (config == null)
+					return false;
+			}
+		}
+		
+		return config.hasValue(path_, value_);
+	}
+	public boolean hasValue(String config_, String path_, Object value_) { return hasValue(config_, path_, value_, ""); }
 	
 	/**
 	 * Gets the name of the plugin.
@@ -173,7 +230,7 @@ public abstract class BukkitPlugin extends JavaPlugin {
 				return true;
 			}
 		}
-		if (permissionsRequired)
+		if (permissionsRequire)
 			return true;
 		log(Level.SEVERE, "No instance of GroupManager or Permissions found. Disabling.");
 		getServer().getPluginManager().disablePlugin(this);
@@ -189,7 +246,7 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	 * @return True if the player has permissions, false otherwise.
 	 * If for some reason no permission handler found return true
 	 */
-	public boolean has(Player player_, String node_) {
+	public boolean hasPermission(Player player_, String node_) {
 		if (gm != null) return gm.getWorldsHolder().getWorldPermissions(player_).has(player_, node_);
 		else if (p != null) return p.has(player_, node_);
 		return true;

@@ -66,8 +66,8 @@ public class AntiGriefZoneProtectionZone {
 		
 		init(name_, (String)config_.getValue("creator"), (String)config_.getValue("parent"), world_);
 		
-		if (config_.containsKey("points")) {
-			ArrayList<String> points = (ArrayList<String>) config_.get("points");
+		if (config_.hasKey("points")) {
+			ArrayList<String> points = (ArrayList<String>) config_.getValue("points");
 			for (String point : points) {
 				String cord[] = point.split("\\,");
 				//BACKWARD COMPATIBILITY for zones without y values
@@ -106,7 +106,7 @@ public class AntiGriefZoneProtectionZone {
 			}
 		}
 		
-		if (config_.containsKey("message")) message = (String) config_.get("message");
+		if (config_.hasKey("message")) message = (String) config_.getValue("message");
 		
 		if (!users.contains(creator)) users.add(creator);
 		
@@ -117,8 +117,8 @@ public class AntiGriefZoneProtectionZone {
 		plugin = plugin_;
 		
 		init(name_, creator_, parent_, world_);
-		config.put("parent", parent);
-		config.put("creator", creator);
+		config.addValue("parent", parent);
+		config.addValue("creator", creator);
 		
 		users.add(creator_);
 	}
@@ -132,7 +132,7 @@ public class AntiGriefZoneProtectionZone {
 		parent = parent_;
 		creator = creator_;
 		
-		config = new Config.Type();
+		//config = new Config(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, plugin.getName(), name);
 		
 		poly = new Polygon();
 		groups = new ArrayList<String>();
@@ -227,13 +227,13 @@ public class AntiGriefZoneProtectionZone {
 		poly.addPoint(x_, z_);
 		String key = x_ + "," + y_ + "," + z_;
 		points.add(key);
-		if (config.containsKey("points")) {
-			ArrayList<String> points = (ArrayList<String>)config.get("points");
+		if (config.hasKey("points")) {
+			ArrayList<String> points = (ArrayList<String>)config.getValue("points");
 			points.add(key);
 		} else {
 			ArrayList<String> points = new ArrayList<String>();
 			points.add(key);
-			config.put("points", points);
+			config.addValue("points", points);
 		}
 		++numPoints;
 		
@@ -261,8 +261,8 @@ public class AntiGriefZoneProtectionZone {
 		String player_path = "users." + player_.getName();
 		String group_path = "groups." + group;
 		
-		boolean prevent_player = Config.has(config, player_path + ".nodes.prevent", node_);
-		boolean prevent_group = Config.has(config, group_path + ".nodes.prevent", node_);
+		boolean prevent_player = config.hasValue(player_path + ".nodes.prevent", node_);
+		boolean prevent_group = config.hasValue(group_path + ".nodes.prevent", node_);
 
 		if ((prevent_player || prevent_group) && item_ != -1) {
 			if (access_player) return allowItem(player_path, node_, item_);
@@ -282,7 +282,7 @@ public class AntiGriefZoneProtectionZone {
 		else if (node_.equals("player.item.pickup") || node_.equals("player.item.use")) node = "allow.item";
 		else return false;
 
-		return Config.has(config, prefix_ + "." + node, item_);
+		return config.hasValue(prefix_ + "." + node, item_);
 	}
 	
 	public boolean addGroup(String group_) {
@@ -303,7 +303,7 @@ public class AntiGriefZoneProtectionZone {
 	
 	private void write() {
 		System.out.println(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world);
-		Config.create(plugin.getName(), plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, config);
+		config.write();
 	}
 	
 	public String getMessage() {

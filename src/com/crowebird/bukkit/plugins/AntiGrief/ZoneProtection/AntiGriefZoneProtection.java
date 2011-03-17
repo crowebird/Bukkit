@@ -140,10 +140,10 @@ public class AntiGriefZoneProtection {
 		return true;
 	}
 	
-	public void addZone(String world_, String zone_, Config config_) {
+	public void addZone(String world_, String zone_, ConfigTemplate config_) {
 		AntiGriefZoneProtectionWorld world = worlds.get(world_);
 		if (world == null) world = new AntiGriefZoneProtectionWorld(plugin, world_);
-		world.addZone(new AntiGriefZoneProtectionZone(plugin, zone_, config_, world_));
+		//world.addZone(new AntiGriefZoneProtectionZone(plugin, zone_, config_, world_));
 		worlds.put(world_, world);
 	}
 	
@@ -163,7 +163,7 @@ public class AntiGriefZoneProtection {
 						int extension = name.lastIndexOf(".");
 						name = name.substring(0, (extension == -1 ? name.length() : extension));
 
-						addZone(world, name, new Config(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, templateZone_));
+						//addZone(world, name, new Config(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, templateZone_));
 					}
 				}
 			}
