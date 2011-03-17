@@ -106,7 +106,7 @@ public class Config extends ConfigNode {
 			File f = new File(file);
 			boolean exists = false;
 			if (!f.exists()) {
-				new File(path).mkdir();
+				new File(path).mkdirs();
 				f.createNewFile();
 			} else exists = true;
 			

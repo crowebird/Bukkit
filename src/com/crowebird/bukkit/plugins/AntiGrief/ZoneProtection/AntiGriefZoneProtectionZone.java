@@ -30,6 +30,7 @@ package com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection;
 
 import java.awt.Polygon;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
@@ -40,6 +41,8 @@ import org.bukkit.World;
 
 import com.crowebird.bukkit.plugins.AntiGrief.AntiGrief;
 import com.crowebird.bukkit.plugins.util.config.Config;
+import com.crowebird.bukkit.plugins.util.config.cast.ConfigArrayListInteger;
+import com.crowebird.bukkit.plugins.util.config.cast.ConfigArrayListString;
 
 public class AntiGriefZoneProtectionZone {
 
@@ -63,6 +66,10 @@ public class AntiGriefZoneProtectionZone {
 	@SuppressWarnings("unchecked")
 	public AntiGriefZoneProtectionZone(AntiGrief plugin_, String name_, Config config_, String world_) {
 		plugin = plugin_;
+		
+		try {
+			config_.load(true);
+		} catch (IOException ex) { }
 		
 		init(name_, (String)config_.getValue("creator"), (String)config_.getValue("parent"), world_);
 		
@@ -98,12 +105,10 @@ public class AntiGriefZoneProtectionZone {
 		for(String key : keys) {
 			String type[] = key.split("\\.");
 			
-			if (type.length >= 2) {
-				if (type[0].equals("groups"))
-					groups.add(type[1]);
-				else if (type[1].equals("users"))
-					users.add(type[1]);
-			}
+			if (type[0].equals("groups"))
+				groups.add(type[1]);
+			else if (type[1].equals("users"))
+				users.add(type[1]);
 		}
 		
 		if (config_.hasKey("message")) message = (String) config_.getValue("message");
@@ -121,6 +126,8 @@ public class AntiGriefZoneProtectionZone {
 		config.addValue("creator", creator);
 		
 		users.add(creator_);
+		
+		write();
 	}
 	
 	public int getPoints() {
@@ -132,7 +139,7 @@ public class AntiGriefZoneProtectionZone {
 		parent = parent_;
 		creator = creator_;
 		
-		//config = new Config(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, plugin.getName(), name);
+		config = new Config(plugin, plugin.getDataFolder().toString() + File.separator + world_ + File.separator + "zones", name, plugin.template_zone);
 		
 		poly = new Polygon();
 		groups = new ArrayList<String>();
@@ -286,23 +293,42 @@ public class AntiGriefZoneProtectionZone {
 	}
 	
 	public boolean addGroup(String group_) {
+		groups.add(group_);
+		config.addValue("groups." + group_ + ".allow.item", new ConfigArrayListInteger());
+		config.addValue("groups." + group_ + ".allow.interact", new ConfigArrayListInteger());
+		config.addValue("groups." + group_ + ".allow.block", new ConfigArrayListInteger());
+		config.addValue("groups." + group_ + ".nodes.prevent", new ConfigArrayListString());
 		return true;
 	}
 	
 	public boolean addUser(String user_) {
+		users.add(user_);
+		config.addValue("users." + user_ + ".allow.item", new ConfigArrayListInteger());
+		config.addValue("users." + user_ + ".allow.interact", new ConfigArrayListInteger());
+		config.addValue("users." + user_ + ".allow.block", new ConfigArrayListInteger());
+		config.addValue("users." + user_ + ".nodes.prevent", new ConfigArrayListString());
 		return true;
 	}
 	
 	public boolean removeUser(String user_) {
+		users.remove(user_);
+		config.removeValue("users." + user_ + ".allow.item");
+		config.removeValue("users." + user_ + ".allow.interact");
+		config.removeValue("users." + user_ + ".allow.block");
+		config.removeValue("users." + user_ + ".nodes.prevent");
 		return true;
 	}
 	
 	public boolean removeGroup(String group_) {
+		groups.remove(group_);
+		config.removeValue("groups." + group_ + ".allow.item");
+		config.removeValue("groups." + group_ + ".allow.interact");
+		config.removeValue("groups." + group_ + ".allow.block");
+		config.removeValue("groups." + group_ + ".nodes.prevent");
 		return true;
 	}
 	
-	private void write() {
-		System.out.println(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world);
+	public void write() {
 		config.write();
 	}
 	

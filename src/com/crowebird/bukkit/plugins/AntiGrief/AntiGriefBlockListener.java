@@ -113,7 +113,7 @@ public class AntiGriefBlockListener extends BlockListener {
 			if (d == BlockFace.EAST) --z;
 		}
 		
-		if (plugin.zoneProtection.isBuilding(name) && player.getItemInHand().getTypeId() == (Integer)plugin.getValue("settings", "config.zones.tool")) {
+		if (plugin.zoneProtection.isBuilding(name) && player.getItemInHand().getTypeId() == (Integer)plugin.getValue("settings", "zones.tool")) {
 			plugin.zoneProtection.addPoint(name, x, y, z);
 			player.sendMessage("Point added!");
 		}

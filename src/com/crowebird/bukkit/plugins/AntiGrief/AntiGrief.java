@@ -64,9 +64,9 @@ public class AntiGrief extends BukkitPlugin {
 	
 	private HashMap<String, Long> message_delay;
 	
-	private ConfigTemplate template_settings;
-	private ConfigTemplate template_world;
-	private ConfigTemplate template_zone;
+	private final ConfigTemplate template_settings;
+	private final ConfigTemplate template_world;
+	public final ConfigTemplate template_zone;
 	
 	public AntiGrief() {
 		super("AntiGrief", "0.9", true);
@@ -80,7 +80,7 @@ public class AntiGrief extends BukkitPlugin {
 				
 		template_settings = new ConfigTemplate();
 		template_settings.put("priority", "lowest");
-		template_settings.put("message.access", "You are not allowed to perfrom that action!");
+		template_settings.put("message.access", "You are not allowed to perform that action!");
 		template_settings.put("message.command", "You are not allowed to use that command!");
 		template_settings.put("message.delay", 5);
 		template_settings.put("zones.enable", true);
@@ -130,15 +130,14 @@ public class AntiGrief extends BukkitPlugin {
 		configs.put("settings", new Config(this, getDataFolder().toString(), "settings", template_settings));
 		configs.put("default", new Config(this, getDataFolder().toString(), "default", template_world));
 
-		File files[] = (new File(getDataFolder().toString())).listFiles();
-		if (files != null) {
-			for (File file : files) {
-				if (!file.isFile()) continue;
-				String name = file.getName();
-				int extension = name.lastIndexOf(".");
-				name = name.substring(0, (extension == -1 ? name.length() : extension));
-				if (name.equals("config") || name.equals("default")) continue;
-				configs.put("world." + name, new Config(this, getDataFolder().toString() + File.separator + "world", name, template_zone));
+		File worlddirs[] = (new File(getDataFolder().toString())).listFiles();
+		if (worlddirs != null) {
+			for (File dir : worlddirs) {
+				if (!dir.isDirectory()) continue;
+				String world = dir.getName();
+				File config = new File(getDataFolder().toString() + File.separator + world + File.separator + "config.yml");
+				if (!config.exists()) continue;
+				configs.put("world." + world, new Config(this, getDataFolder().toString() + File.separator + world, "config", template_zone));
 			}
 		}
 

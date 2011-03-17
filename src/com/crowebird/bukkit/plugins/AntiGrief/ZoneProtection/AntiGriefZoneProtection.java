@@ -86,7 +86,7 @@ public class AntiGriefZoneProtection {
 			}
 		}
 		
-		if (world.zoneExists(zone_)) {
+		if (world != null && world.zoneExists(zone_)) {
 			player_.sendMessage("Another zone with the same name already exists!");
 			return false;
 		} else
@@ -140,30 +140,30 @@ public class AntiGriefZoneProtection {
 		return true;
 	}
 	
-	public void addZone(String world_, String zone_, ConfigTemplate config_) {
+	public void addZone(String world_, String zone_, Config config_) {
 		AntiGriefZoneProtectionWorld world = worlds.get(world_);
 		if (world == null) world = new AntiGriefZoneProtectionWorld(plugin, world_);
-		//world.addZone(new AntiGriefZoneProtectionZone(plugin, zone_, config_, world_));
+		world.addZone(new AntiGriefZoneProtectionZone(plugin, zone_, config_, world_));
 		worlds.put(world_, world);
 	}
 	
 	public void load(ConfigTemplate templateZone_) {
 		worlds = new HashMap<String, AntiGriefZoneProtectionWorld>();
 		
-		new File(plugin.getDataFolder().toString() + File.separator + "zones").mkdir();
-		File dirs[] = (new File(plugin.getDataFolder().toString() + File.separator + "zones")).listFiles();
-		if (dirs != null) {
-			for (File dir : dirs) {
+		File worlddirs[] = (new File(plugin.getDataFolder().toString())).listFiles();
+		if (worlddirs != null) {
+			for (File dir : worlddirs) {
 				if (!dir.isDirectory()) continue;
 				String world = dir.getName();
-				File files[] = (new File(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world)).listFiles();
+				
+				File files[] = (new File(plugin.getDataFolder().toString() + File.separator + world + File.separator + "zones")).listFiles();
 				if (files != null) {
-					for(File file : files) {
-						String name = file.getName();
-						int extension = name.lastIndexOf(".");
-						name = name.substring(0, (extension == -1 ? name.length() : extension));
-
-						//addZone(world, name, new Config(plugin.getDataFolder().toString() + File.separator + "zones" + File.separator + world, name, templateZone_));
+					for (File file : files) {
+						if (!file.isFile()) continue;
+						String zone = file.getName();
+						int extension = zone.lastIndexOf(".");
+						zone = zone.substring(0, (extension == -1 ? zone.length() : extension));
+						addZone(world, zone, new Config(plugin, plugin.getDataFolder().toString() + File.separator + world + File.separator + "zones", zone, templateZone_));
 					}
 				}
 			}
@@ -189,6 +189,7 @@ public class AntiGriefZoneProtection {
 		if (zone.addUser(user_))
 			player_.sendMessage("Player added to " + zone_ + "!");
 		else player_.sendMessage("Player already has access to " + zone_ + "!");
+		zone.write();
 	}
 	
 	public void addGroup(Player player_, String zone_, String group_) {
@@ -197,6 +198,7 @@ public class AntiGriefZoneProtection {
 		if (zone.addGroup(group_))
 			player_.sendMessage("Group added to " + zone_ + "!");
 		else player_.sendMessage("Group already has access to " + zone_ + "!");
+		zone.write();
 	}
 
 	public void removeUser(Player player_, String zone_, String user_) {
@@ -205,6 +207,7 @@ public class AntiGriefZoneProtection {
 		if (zone.removeUser(user_))
 			player_.sendMessage("Player removed from " + zone_ + "!");
 		else player_.sendMessage("Player does not have access to " + zone_ + "!");
+		zone.write();
 	}
 
 	public void removeGroup(Player player_, String zone_, String group_) {
@@ -213,5 +216,6 @@ public class AntiGriefZoneProtection {
 		if (zone.removeGroup(group_))
 			player_.sendMessage("Group removed from " + zone_ + "!");
 		else player_.sendMessage("Group does not have access to " + zone_ + "!");
+		zone.write();
 	}
 }

@@ -85,7 +85,7 @@ public class AntiGriefCommand implements CommandExecutor {
 							else {
 								if (plugin.zoneProtection.createZone(player, zone)) {
 									ZPtools.put(player.getName(), player.getInventory().getItem(0));
-									player.getInventory().setItem(0, (new ItemStack((Integer)plugin.getValue("settings", "config.zones.tool"), 1)));
+									player.getInventory().setItem(0, (new ItemStack((Integer)plugin.getValue("settings", "zones.tool"), 1)));
 									player.sendMessage("Zone creation tool given!");
 								}
 							}
@@ -119,22 +119,22 @@ public class AntiGriefCommand implements CommandExecutor {
 							if (args_.length == 5) {
 								if (args_[2].equals("add")) {
 									if (args_[3].equals("user")) {
-										//plugin.zoneProtection.addUser(player, args_[1]);
+										plugin.zoneProtection.addUser(player, args_[1], args_[4]);
 									} else if (args_[3].equals("group")) {
-										//plugin.zoneProtection.addGroup(player, args_[1]);
+										plugin.zoneProtection.addGroup(player, args_[1], args_[4]);
 									}
 								} else if (args_[2].equals("remove")) {
 									if (args_[3].equals("user")) {
-										//plugin.zoneProtection.removeUser(player, args_[1]);
+										plugin.zoneProtection.removeUser(player, args_[1], args_[4]);
 									} else if (args_[3].equals("group")) {
-										//plugin.zoneProtection.removeGroup(player, args_[1]);
+										plugin.zoneProtection.removeGroup(player, args_[1], args_[4]);
 									}
 								}
 							}
 						}
 					}
 				} else {
-					String msg = (String)this.plugin.getValue("settings", "config.message.command");
+					String msg = (String)this.plugin.getValue("settings", "message.command");
 					if (!msg.equals("")) player.sendMessage(msg);
 					return true;
 				}
