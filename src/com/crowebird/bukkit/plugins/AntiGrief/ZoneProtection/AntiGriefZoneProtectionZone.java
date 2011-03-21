@@ -105,10 +105,12 @@ public class AntiGriefZoneProtectionZone {
 		for(String key : keys) {
 			String type[] = key.split("\\.");
 			
-			if (type[0].equals("groups"))
-				groups.add(type[1]);
-			else if (type[1].equals("users"))
-				users.add(type[1]);
+			if (type.length >= 2) {
+				if (type[0].equals("groups"))
+					groups.add(type[1]);
+				else if (type[0].equals("users"))
+					users.add(type[1]);
+			}
 		}
 		
 		if (config_.hasKey("message")) message = (String) config_.getValue("message");

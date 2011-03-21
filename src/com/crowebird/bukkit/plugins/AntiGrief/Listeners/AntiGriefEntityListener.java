@@ -26,7 +26,7 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.plugins.AntiGrief;
+package com.crowebird.bukkit.plugins.AntiGrief.Listeners;
 
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
@@ -35,6 +35,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityTargetEvent;
+
+import com.crowebird.bukkit.plugins.AntiGrief.AntiGrief;
 
 public class AntiGriefEntityListener extends EntityListener {
 	

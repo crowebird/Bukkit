@@ -26,7 +26,7 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.plugins.AntiGrief;
+package com.crowebird.bukkit.plugins.AntiGrief.Listeners;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -36,6 +36,8 @@ import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleEntityCollisionEvent;
 import org.bukkit.event.vehicle.VehicleListener;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
+
+import com.crowebird.bukkit.plugins.AntiGrief.AntiGrief;
 
 public class AntiGriefVehicleListener extends VehicleListener {
 	

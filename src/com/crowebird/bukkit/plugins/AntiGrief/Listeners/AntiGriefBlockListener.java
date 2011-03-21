@@ -26,7 +26,7 @@ authors and should not be interpreted as representing official policies, either 
 or implied, of Michael Crowe.
 */
 
-package com.crowebird.bukkit.plugins.AntiGrief;
+package com.crowebird.bukkit.plugins.AntiGrief.Listeners;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -41,6 +41,8 @@ import org.bukkit.event.block.BlockInteractEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRightClickEvent;
+
+import com.crowebird.bukkit.plugins.AntiGrief.AntiGrief;
 
 public class AntiGriefBlockListener extends BlockListener {
 
