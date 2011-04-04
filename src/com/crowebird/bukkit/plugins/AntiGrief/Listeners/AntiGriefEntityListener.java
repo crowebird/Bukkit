@@ -30,7 +30,13 @@ package com.crowebird.bukkit.plugins.AntiGrief.Listeners;
 
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Ghast;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Skeleton;
+import org.bukkit.entity.Slime;
+import org.bukkit.entity.Spider;
+import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityListener;
@@ -47,10 +53,28 @@ public class AntiGriefEntityListener extends EntityListener {
 	}
 	
 	public void onEntityTarget(EntityTargetEvent event_) {
-		if (event_.getEntity() instanceof Creeper) {
-			Entity target = (Entity)event_.getTarget();
-			if (target instanceof Player) {
-				if (!this.plugin.access((Player)target, "entity.creeper", target.getLocation(), true))
+		Entity target = (Entity)event_.getTarget();
+		if (target instanceof Player){
+			if (event_.getEntity() instanceof Creeper) {
+				if (!this.plugin.access((Player)target, "creeper", target.getLocation(), true))
+					event_.setCancelled(true);
+			} else if (event_.getEntity() instanceof Zombie) {
+				if (!this.plugin.access((Player)target, "zombie", target.getLocation(), true))
+					event_.setCancelled(true);
+			} else if (event_.getEntity() instanceof Ghast) {
+				if (!this.plugin.access((Player)target, "ghast", target.getLocation(), true))
+					event_.setCancelled(true);
+			} else if (event_.getEntity() instanceof Monster) {
+				if (!this.plugin.access((Player)target, "monster", target.getLocation(), true))
+					event_.setCancelled(true);
+			} else if (event_.getEntity() instanceof Skeleton) {
+				if (!this.plugin.access((Player)target, "skeleton", target.getLocation(), true))
+					event_.setCancelled(true);
+			} else if (event_.getEntity() instanceof Spider) {
+				if (!this.plugin.access((Player)target, "spider", target.getLocation(), true))
+					event_.setCancelled(true);
+			} else if (event_.getEntity() instanceof Slime) {
+				if (!this.plugin.access((Player)target, "slime", target.getLocation(), true))
 					event_.setCancelled(true);
 			}
 		}
@@ -62,12 +86,12 @@ public class AntiGriefEntityListener extends EntityListener {
 			EntityDamageByEntityEvent edbe = (EntityDamageByEntityEvent) event_;
 			Entity damager = edbe.getDamager();
 			if (damager instanceof Player) {
-				if (!this.plugin.access((Player)damager, "player.damage.cause", damager.getLocation()))
+				if (!this.plugin.access((Player)damager, "hit", damager.getLocation()))
 					event_.setCancelled(true);
 			}
 		}
 		if (entity instanceof Player) {
-			if (!this.plugin.access((Player)entity, "player.damage.take." +  event_.getCause().toString().toLowerCase(), entity.getLocation()))
+			if (!this.plugin.access((Player)entity, event_.getCause().toString().toLowerCase(), entity.getLocation()))
 				event_.setCancelled(true);
 		}
 	}

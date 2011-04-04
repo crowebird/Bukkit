@@ -1,8 +1,10 @@
 name: AntiGrief
 main: com.crowebird.bukkit.plugins.AntiGrief.AntiGrief
-version: 0.9
+version: 1.0
 
 commands:
   ag:
-    description: AntiGrief commands
-    usage: ''
+    description: AntiGrief Commands
+    usage:
+      - 'Reload AntiGrief: /ag -r'
+      

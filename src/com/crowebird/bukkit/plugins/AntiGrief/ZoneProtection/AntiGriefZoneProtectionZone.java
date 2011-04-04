@@ -66,9 +66,9 @@ public class AntiGriefZoneProtectionZone {
 	@SuppressWarnings("unchecked")
 	public AntiGriefZoneProtectionZone(AntiGrief plugin_, String name_, Config config_, String world_) {
 		plugin = plugin_;
-		
+
 		try {
-			config_.load(true);
+			config_.load();
 		} catch (IOException ex) { }
 		
 		init(name_, (String)config_.getValue("creator"), (String)config_.getValue("parent"), world_);

@@ -13,7 +13,7 @@ public class ConfigNode {
 	public ConfigNode(String key_) {
 		key = key_;
 		children = new HashMap<String, ConfigNode>();
-		value = null;
+		value = new ConfigNull();
 	}
 	
 	public void addValue(String path_, Object value_) {
@@ -64,6 +64,7 @@ public class ConfigNode {
 	}
 	
 	public Object getValue(String path_) {
+		System.out.println("GETTING VALUE -> path: " + path_);
 		if (path_.equals("")) return value;
 		
 		int index = path_.indexOf(".");
@@ -75,13 +76,10 @@ public class ConfigNode {
 			key = path_.substring(0, index);
 			path_ = path_.substring(index + 1);
 		}
-		
+		System.out.println("NODE VALUE: " + value);
+		System.out.println(children.keySet().toString());
 		if (!children.containsKey(key)) return null;
-		
-		ConfigNode node = children.get(key);
-		if (node == null) return null;
-		
-		return node.getValue(path_);
+		return children.get(key).getValue(path_);
 	}
 	
 	public boolean hasValue(String path_, Object value_) {	
@@ -100,8 +98,25 @@ public class ConfigNode {
 		return children.size();
 	}
 	
-	public boolean hasKey(Object key_) {
+	public boolean hasKey(String key_) {
 		return children.containsKey(key_);
+	}
+	
+	public boolean hasPath(String path_) {
+		if (path_.equals("")) return true;
+		
+		int index = path_.indexOf(".");
+		String key;
+		if (index == -1) {
+			key = path_;
+			path_ = "";
+		} else {
+			key = path_.substring(0, index);
+			path_ = path_.substring(index + 1);
+		}
+		
+		if (!children.containsKey(key)) return false;
+		return children.get(key).hasPath(path_);
 	}
 	
 	public String print(int level) {

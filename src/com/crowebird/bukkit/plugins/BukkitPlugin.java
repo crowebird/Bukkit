@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.anjocaido.groupmanager.GroupManager;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -130,19 +131,45 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	 */
 	protected abstract void buildConfig();
 	
+	public void sendMessage(CommandSender sender_, String msg_) {
+		msg_ = msg_.replace('&', '§');
+		if (sender_ instanceof Player)
+			((Player)sender_).sendMessage(msg_);
+	}
+	
+	/**
+	 * Gets the config file specified by config_, if it does not exist, gets
+	 * the alternative_config_ file if specified.
+	 * 
+	 * @param config_ The name of the configuration file to get
+	 * @param alternative_config_ The name of the alternative configuration file to get
+	 * @return The specified config, or null if it does not exist
+	 */
+	private Config getConfig(String config_, String alternative_config_) {
+		Config config = configs.get(config_);
+		
+		if (config == null && !alternative_config_.equals(""))
+			config = configs.get(alternative_config_);
+		
+		return config;
+	}
+	
 	/**
 	 * Gets the value from the configuration file config_ at the specified
-	 * key path path_
+	 * key path path_, if specified, will check
+	 * alternative_config_ instead if config_ does not exist.
 	 * 
 	 * @param config_ The name of the configuration file
 	 * @param path_ The key path to check
+	 * @param alternative_config_ The name of the alternative configuration file to get (optional)
 	 * @return The value of the key path path_ if config_ exists, null otherwise
 	 */
-	public Object getValue(String config_, String path_) {
-		Config config = configs.get(config_);
+	public Object getValue(String config_, String path_, String alternative_config_) {
+		Config config = getConfig(config_, alternative_config_);
 		if (config == null) return null;
 		return config.getValue(path_);
 	}
+	public Object getValue(String config_, String path_) { return getValue(config_, path_, ""); }
 	
 	/**
 	 * See if configuration file config_ has value_ at key path path_, if specified, will check
@@ -155,20 +182,26 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	 * @return True if the value is found, false otherwise
 	 */
 	public boolean hasValue(String config_, String path_, Object value_, String alternative_config_) {
-		Config config = configs.get(config_);
-		
-		if (config == null)  {
-			if (alternative_config_.equals("")) return false;
-			else {
-				config = configs.get(alternative_config_);
-				if (config == null)
-					return false;
-			}
-		}
-		
+		Config config = getConfig(config_, alternative_config_);
+		if (config == null) return false;
 		return config.hasValue(path_, value_);
 	}
 	public boolean hasValue(String config_, String path_, Object value_) { return hasValue(config_, path_, value_, ""); }
+	
+	/**
+	 * Gets if the key path exists in this configuration file.
+	 * 
+	 * @param config_ The name of the configuration file to check
+	 * @param path_ The key path to find
+	 * @param alternative_config_ The name of the alternative configuration file to check (optional)
+	 * @return True if the config has the key path, false otherwise
+	 */
+	public boolean hasPath(String config_, String path_, String alternative_config_) {
+		Config config = getConfig(config_, alternative_config_);
+		if (config == null) return false;
+		return config.hasPath(path_);
+	}
+	public boolean hasPath(String config_, String path_) { return hasPath(config_, path_, ""); }
 	
 	/**
 	 * Gets the name of the plugin.
@@ -230,7 +263,7 @@ public abstract class BukkitPlugin extends JavaPlugin {
 				return true;
 			}
 		}
-		if (permissionsRequire)
+		if (!permissionsRequire)
 			return true;
 		log(Level.SEVERE, "No instance of GroupManager or Permissions found. Disabling.");
 		getServer().getPluginManager().disablePlugin(this);

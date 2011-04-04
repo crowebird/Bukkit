@@ -26,6 +26,8 @@ public class Config extends ConfigNode {
 	
 	private String name;
 	
+	private boolean needsReWrite;
+	
 	public Config(BukkitPlugin plugin_, String path_, String filename_, ConfigTemplate template_, String name_) {
 		super("root");
 		
@@ -34,6 +36,8 @@ public class Config extends ConfigNode {
 		filename = filename_;
 		template = template_;
 		name = name_;
+		
+		needsReWrite = false;
 	}
 	public Config(BukkitPlugin plugin_, String path_, String filename_, ConfigTemplate template_) { this(plugin_, path_, filename_, template_, filename_); }
 	
@@ -45,7 +49,58 @@ public class Config extends ConfigNode {
 		return name;
 	}
 	
-	public void load(boolean ignore_warning_) throws IOException {
+	private void determineValue(String key_, Configuration config_, String file_, String value_) {
+		String[] path = key_.split("\\.");
+		Vector<String> ukeys = new Vector<String>();
+		
+		boolean hasStar = false;
+		for (int x = 1; x < path.length; ++x) {
+			if (!path[x].equals("*")) continue;
+			hasStar = true;
+			String suffix = "";
+			for (int i = x + 1; i < path.length; ++i) suffix += "." + path[i];
+			
+			String fpath = "";
+			for (int i = 0; i < x; ++i) fpath += (fpath.equals("") ? "" : ".") + path[i];
+			List<String> pkeys = config_.getKeys(fpath);
+			if (pkeys != null) for(String sub : pkeys) ukeys.add(path + "." + sub + suffix);
+		}
+		if (ukeys.size() == 0) {
+			if (!hasStar) ukeys.add(key_);
+			else return;
+		}
+		
+		Object expected = template.get(key_);
+		boolean depricated = template.isKeyDepricated(key_);
+		for (String ukey : ukeys) {
+			Object value = config_.getProperty(ukey);
+			
+			if (depricated) {
+				if (value == null) value = config_.getProperty(template.getNewKey(ukey));
+				else needsReWrite = true;
+			}
+			
+			boolean use_default = false;
+			if (value == null) use_default = true;
+			else {
+				if (value instanceof ArrayList<?> && expected instanceof ConfigArrayList<?>) {
+					ArrayList<?> provided_value = (ArrayList<?>)value;
+					if (provided_value.size() != 0) {
+						if (!provided_value.get(0).getClass().equals(((ConfigArrayList<?>)expected).getParameterized())) use_default = true;
+					}
+				}
+			}
+			
+			if (use_default) {
+				if (value != null) plugin.log(Level.WARNING, "Unexpected value for " + ukey + " [" + file_ + "], using default.");
+				value = expected;
+			}
+			addValue(depricated ? template.getNewKey(ukey) : ukey, value);
+		}
+	}
+	private void determineValue(String key_, Configuration config_, String file_) { determineValue(key_, config_, file_, null); }
+	
+	public void load() throws IOException {
 		String file = path + File.separator + filename + ".yml";
 		
 		File yml = new File(file);
@@ -55,50 +110,12 @@ public class Config extends ConfigNode {
 		Configuration config = new Configuration(yml);
 		config.load();
 		
-		for (String key : keys) {
-			String[] path = key.split("\\.");
-			Vector<String> ukeys = new Vector<String>();
-			
-			for (int x = 1; x < path.length; ++x) {
-				if (!path[x].equals("*")) continue;
-				String suffix = "";
-				for (int i = x + 1; i < path.length; ++i) suffix += "." + path[i];
-				
-				String fpath = "";
-				for (int i = 0; i < x; ++i) fpath += (fpath.equals("") ? "" : ".") + path[i];
-				List<String> pkeys = config.getKeys(fpath);
-				if (pkeys != null) for(String sub : pkeys) ukeys.add(path + "." + sub + suffix);
-			}
-			if (ukeys.size() == 0) ukeys.add(key);
-			
-			Object expected = template.get(key);
-			for (String ukey : ukeys) {
-				Object value = config.getProperty(key);
-				
-				boolean use_default = false;
-				if (value == null) use_default = true;
-				else {
-					if (value instanceof ArrayList<?> && expected instanceof ConfigArrayList<?>) {
-						ArrayList<?> provided_value = (ArrayList<?>)value;
-						if (provided_value.size() != 0) {
-							if (!provided_value.get(0).getClass().equals(((ConfigArrayList<?>)expected).getParameterized())) use_default = true;
-						}
-					}
-				}
-				if (use_default) {
-					if (!ignore_warning_) {
-						plugin.log(Level.WARNING, (value == null ? "Missing" : "Unexpected value for") + " " + ukey + " [" + file + "], using default.");
-						value = expected;
-					} else {
-						if (value != null) plugin.log(Level.WARNING, "Unexpected value for " + ukey + " [" + file + "], ignoring.");
-						continue;
-					}
-				}
-				addValue(ukey, value);
-			}
- 		}
+		for (String key : keys)
+			determineValue(key, config, file);
+		
+		if (needsReWrite)
+			write();
 	}
-	public void load() throws IOException { load(false); }
 	
 	public void write() {
 		String file = path + File.separator + filename + ".yml";
@@ -117,14 +134,18 @@ public class Config extends ConfigNode {
 
 			if (!exists) plugin.log("Configuration file created [" + file + "]!");
 		} catch (Exception ex) {
-			plugin.log(Level.WARNING, "Unable to properly create config [" + file + "]!");
+			plugin.log(Level.WARNING, "Unable to write config [" + file + "]!");
 		}
+		
+		needsReWrite = false;
 	}
 	
 	public void create() {
 		Set<String> keys = template.keySet();
-		for (String key : keys)
-			addValue(key, template.get(key));
+		for (String key : keys) {
+			if (key.indexOf("*") == -1)
+				addValue(template.isKeyDepricated(key) ? template.getNewKey(key) : key, template.get(key));
+		}
 		write();
 	}
 }
