@@ -41,7 +41,6 @@ import org.bukkit.World;
 
 import com.crowebird.bukkit.plugins.AntiGrief.AntiGrief;
 import com.crowebird.bukkit.plugins.util.config.Config;
-import com.crowebird.bukkit.plugins.util.config.cast.ConfigArrayListInteger;
 import com.crowebird.bukkit.plugins.util.config.cast.ConfigArrayListString;
 
 public class AntiGriefZoneProtectionZone {
@@ -118,7 +117,7 @@ public class AntiGriefZoneProtectionZone {
 		if (!users.contains(creator)) users.add(creator);
 		
 		config = config_;
-		finalized = true;
+		finalize(true);
 	}
 	public AntiGriefZoneProtectionZone(AntiGrief plugin_, String name_, String creator_, String parent_, String world_) {
 		plugin = plugin_;
@@ -252,80 +251,42 @@ public class AntiGriefZoneProtectionZone {
 		showVisulization();
 	}
 	
-	public void finalize() {
+	public void finalize(boolean ignoreWrite_) {
 		if (finalized) return;
 		finalized = true;
-		write();
+		
+		plugin.configs.put("zone." + world + "." + name, config);
+		
+		if (!ignoreWrite_)
+			write();
 	}
+	public void finalize() { finalize(false); }
 	
 	public boolean access(Player player_, String node_, int item_, boolean suppress_) {
-		String group = plugin.getGroup(player_);
-		
-		boolean access_player = users.contains(player_.getName());
-		boolean access_group = group != null && groups.contains(group);
-		
-		boolean access =  access_player || access_group;
-		if (!access) return false;
-		
-		String player_path = "users." + player_.getName();
-		String group_path = "groups." + group;
-		
-		boolean prevent_player = config.hasValue(player_path + ".nodes.prevent", node_);
-		boolean prevent_group = config.hasValue(group_path + ".nodes.prevent", node_);
-
-		if ((prevent_player || prevent_group) && item_ != -1) {
-			if (access_player) return allowItem(player_path, node_, item_);
-			if (access_group) return allowItem(group_path, node_, item_);
-		}
-		
-		if (access_player) return !prevent_player;
-		if (access_group) return !prevent_group;
-		
-		return false;
+		return plugin.getPermission("zone." + world + "." + name, player_, node_, item_);
 	}
 	
-	private boolean allowItem(String prefix_, String node_, int item_) {
-		String node = "";
-		if (node_.equals("block.interact")) node = "allow.interact";
-		else if (node_.equals("block.damage") || node_.equals("block.place")) node = "allow.block";
-		else if (node_.equals("player.item.pickup") || node_.equals("player.item.use")) node = "allow.item";
-		else return false;
-
-		return config.hasValue(prefix_ + "." + node, item_);
-	}
 	
 	public boolean addGroup(String group_) {
 		groups.add(group_);
-		config.addValue("groups." + group_ + ".allow.item", new ConfigArrayListInteger());
-		config.addValue("groups." + group_ + ".allow.interact", new ConfigArrayListInteger());
-		config.addValue("groups." + group_ + ".allow.block", new ConfigArrayListInteger());
 		config.addValue("groups." + group_ + ".nodes.prevent", new ConfigArrayListString());
 		return true;
 	}
 	
 	public boolean addUser(String user_) {
 		users.add(user_);
-		config.addValue("users." + user_ + ".allow.item", new ConfigArrayListInteger());
-		config.addValue("users." + user_ + ".allow.interact", new ConfigArrayListInteger());
-		config.addValue("users." + user_ + ".allow.block", new ConfigArrayListInteger());
 		config.addValue("users." + user_ + ".nodes.prevent", new ConfigArrayListString());
 		return true;
 	}
 	
 	public boolean removeUser(String user_) {
 		users.remove(user_);
-		config.removeValue("users." + user_ + ".allow.item");
-		config.removeValue("users." + user_ + ".allow.interact");
-		config.removeValue("users." + user_ + ".allow.block");
 		config.removeValue("users." + user_ + ".nodes.prevent");
 		return true;
 	}
 	
 	public boolean removeGroup(String group_) {
 		groups.remove(group_);
-		config.removeValue("groups." + group_ + ".allow.item");
-		config.removeValue("groups." + group_ + ".allow.interact");
-		config.removeValue("groups." + group_ + ".allow.block");
 		config.removeValue("groups." + group_ + ".nodes.prevent");
 		return true;
 	}

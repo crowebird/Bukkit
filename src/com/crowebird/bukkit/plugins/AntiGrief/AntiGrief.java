@@ -52,8 +52,8 @@ import com.crowebird.bukkit.plugins.AntiGrief.Listeners.AntiGriefBlockListener;
 import com.crowebird.bukkit.plugins.AntiGrief.Listeners.AntiGriefEntityListener;
 import com.crowebird.bukkit.plugins.AntiGrief.Listeners.AntiGriefPlayerListener;
 import com.crowebird.bukkit.plugins.AntiGrief.Listeners.AntiGriefVehicleListener;
-//import com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection.AntiGriefZoneProtection;
-//import com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection.AntiGriefZoneProtectionException;
+import com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection.AntiGriefZoneProtection;
+import com.crowebird.bukkit.plugins.AntiGrief.ZoneProtection.AntiGriefZoneProtectionException;
 import com.crowebird.bukkit.plugins.util.config.Config;
 import com.crowebird.bukkit.plugins.util.config.ConfigTemplate;
 import com.crowebird.bukkit.plugins.util.config.cast.ConfigArrayListInteger;
@@ -65,13 +65,13 @@ public class AntiGrief extends BukkitPlugin {
 	private AntiGriefEntityListener entityListener;
 	private AntiGriefVehicleListener vehicleListener;
 
-	//public AntiGriefZoneProtection zoneProtection;
+	public AntiGriefZoneProtection zoneProtection;
 	
 	private HashMap<String, Long> message_delay;
 	
 	private final ConfigTemplate template_settings;
 	private final ConfigTemplate template_world;
-	//public final ConfigTemplate template_zone;
+	public final ConfigTemplate template_zone;
 	
 	public AntiGrief() {
 		super("AntiGrief", "1.0", true);
@@ -113,25 +113,19 @@ public class AntiGrief extends BukkitPlugin {
 		template_world.put("users.*.*.prevent", new ConfigArrayListInteger());
 		template_world.put("users.*.*.allow", new ConfigArrayListInteger());
 		
-		/*
 		template_zone = new ConfigTemplate();
 		template_zone.put("creator", "");
 		template_zone.put("parent", "");
 		template_zone.put("points", new ConfigArrayListString());
 		template_zone.put("message.enter", "");
-		template_zone.put("groups.*.allow.item", new ConfigArrayListInteger());
-		template_zone.put("groups.*.allow.interact", new ConfigArrayListInteger());
-		template_zone.put("groups.*.allow.block", new ConfigArrayListInteger());
-		template_zone.put("groups.*.nodes.prevent", new ConfigArrayListString());
-		template_zone.put("users.*.allow.item", new ConfigArrayListInteger());
-		template_zone.put("users.*.allow.interact", new ConfigArrayListInteger());
-		template_zone.put("users.*.allow.block", new ConfigArrayListInteger());
-		template_zone.put("users.*.nodes.prevent", new ConfigArrayListString());
-		*/
+		template_zone.put("groups.*.*.allow", new ConfigArrayListInteger());
+		template_zone.put("groups.*.*.prevent", new ConfigArrayListInteger());
+		template_zone.put("users.*.*.allow", new ConfigArrayListInteger());
+		template_zone.put("users.*.*.prevent", new ConfigArrayListInteger());
 	}
 	
 	public void onEnable() {
-		//zoneProtection = new AntiGriefZoneProtection(this);
+		zoneProtection = new AntiGriefZoneProtection(this);
 		getCommand("ag").setExecutor(new AntiGriefCommand(this));
 		
 		super.onEnable();
@@ -161,10 +155,8 @@ public class AntiGrief extends BukkitPlugin {
 			}
 		}
 		
-		/*
 		if (configs.get("settings").getValue("zones.enable").equals(true));
 			zoneProtection.load(template_zone);
-		*/
 	}
 	
 	protected void registerEvents() {
@@ -199,6 +191,26 @@ public class AntiGrief extends BukkitPlugin {
 		log("Using the " + compile_level.toString() + " priority level.");
 	}
 
+	public boolean getPermission(String config_, Player player_, String node_, int item_) {
+		boolean permission = true;
+		
+		String group = getGroup(player_);
+		if (group == null) return false;
+		
+		boolean canBuild = canGroupBuild(player_, group);
+		
+		int ca = checkAccess(config_, node_, item_, canBuild);
+		if (ca != -1) permission = (ca == 1 ? true : false);
+		
+		ca = checkAccess(config_, "groups." + group, node_, item_);
+		if (ca != -1) permission = (ca == 1 ? true : false);
+		
+		ca = checkAccess(config_, "users." + player_.getName(), node_, item_);
+		if (ca != -1) permission = (ca == 1 ? true : false);
+		
+		return permission;
+	}
+	
 	public boolean access(Player player_, String node_, Location location_, int item_, boolean supress_) {
 		if (player_ == null) return true;
 		
@@ -207,32 +219,15 @@ public class AntiGrief extends BukkitPlugin {
 		boolean permission = true;
 		boolean zoned = false;
 		
-		/*
 		if (getValue("settings", "zones.enable").equals(true)) {
 			try {
 				permission = zoneProtection.access(player_, node_, location_, item_, supress_);
 				zoned = true;
 			} catch (AntiGriefZoneProtectionException ex) {  }
 		}
-		*/
 		
-		if (!zoned) {
-			String world = player_.getWorld().getName();
-			String config = "world." + world;
-			
-			String group = getGroup(player_);
-			if (group == null) return false;
-			
-			boolean canBuild = canGroupBuild(player_, group);
-			
-			int ca = checkAccess(config, node_, item_, canBuild);
-			if (ca != -1) permission = ca == 1 ? true : false;
-			
-			ca = checkAccess(config, "groups." + group, node_, item_);
-			if (ca != -1) permission = ca == 1 ? true : false;
-			
-			ca = checkAccess(config, "users." + player_.getName(), node_, item_);
-			if (ca != -1) permission = ca == 1 ? true : false;
+		if (!zoned) {			
+			permission = getPermission("world." + player_.getWorld().getName(), player_, node_, item_);
 		}
 		
 		if (!permission && !supress_) {

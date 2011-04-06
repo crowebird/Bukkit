@@ -64,7 +64,6 @@ public class ConfigNode {
 	}
 	
 	public Object getValue(String path_) {
-		System.out.println("GETTING VALUE -> path: " + path_);
 		if (path_.equals("")) return value;
 		
 		int index = path_.indexOf(".");
@@ -76,8 +75,6 @@ public class ConfigNode {
 			key = path_.substring(0, index);
 			path_ = path_.substring(index + 1);
 		}
-		System.out.println("NODE VALUE: " + value);
-		System.out.println(children.keySet().toString());
 		if (!children.containsKey(key)) return null;
 		return children.get(key).getValue(path_);
 	}

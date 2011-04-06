@@ -49,7 +49,7 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	private PermissionHandler p;
 	private boolean permissionsUse, permissionsRequire;
 	
-	protected HashMap<String, Config> configs;
+	public HashMap<String, Config> configs;
 	
 	private String name, version;
 
