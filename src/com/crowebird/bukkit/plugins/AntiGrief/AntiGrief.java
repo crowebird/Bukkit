@@ -110,6 +110,8 @@ public class AntiGrief extends BukkitPlugin {
 		template_world.put("buildfalse.place.allow", new ConfigArrayListInteger());
 		template_world.put("buildfalse.*.prevent", new ConfigArrayListInteger());
 		template_world.put("buildfalse.*.allow", new ConfigArrayListInteger());
+		template_world.put("buildtrue.*.prevent", new ConfigArrayListInteger());
+		template_world.put("buildtrue.*.allow", new ConfigArrayListInteger());
 		template_world.put("groups.*.prevent_nodes", new ConfigArrayListString());
 		template_world.put("groups.*.allow_nodes", new ConfigArrayListString());
 		template_world.put("groups.*.*.prevent", new ConfigArrayListInteger());
@@ -282,21 +284,17 @@ public class AntiGrief extends BukkitPlugin {
 		ArrayList<Integer> prevent_item = (ArrayList<Integer>) getValue(config_, path_ + "." + node_ + ".prevent", "default");
 		ArrayList<Integer> allow_item = (ArrayList<Integer>) getValue(config_, path_ + "." + node_ + ".allow", "default");
 		
-		boolean prevent_has_item = false;
-		boolean allow_has_item = false;
-		if (prevent_item != null) {
-			allow_has_item = true;
-			prevent_has_item = prevent_item.contains(item_);
+
+		if ((prevent_item != null && allow_item == null) || (prevent_item != null && allow_item != null && prevent_item.size() > 0 && allow_item.size() == 0)) {
+			if (prevent_item.contains(item_))
+				return 0;
+			else
+				return 1;
+		} else if ((prevent_item == null && allow_item != null) || (prevent_item != null && allow_item != null && prevent_item.size() == 0 && allow_item.size() > 0)) {
+			if (allow_item.contains(item_))
+				return 1;
+			else return 0;
 		}
-		if (allow_item != null) {
-			prevent_has_item = true;
-			allow_has_item = allow_item.contains(item_);
-		}
-		
-		if (allow_has_item)
-			return 1;
-		if (prevent_has_item)
-			return 0;
 		
 		boolean prevent_id = hasValue(config_, path_ + ".id.prevent", item_, "default");
 		boolean allow_id = hasValue(config_, path_ + ".id.allow", item_, "default");	
