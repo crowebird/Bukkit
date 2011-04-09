@@ -28,6 +28,7 @@ or implied, of Michael Crowe.
 
 package com.crowebird.bukkit.plugins.AntiGrief.Listeners;
 
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -50,8 +51,10 @@ public class AntiGriefBlockListener extends BlockListener {
 		Player player = event_.getPlayer();
 		Block block = event_.getBlock();
 		
-		if (!this.plugin.access(player, "damage", block.getLocation(), block.getTypeId()))
-			event_.setCancelled(true);
+		if (block.getType() == Material.WOODEN_DOOR) {
+			if (!this.plugin.access(player, "interact", block.getLocation(), block.getTypeId()))
+				event_.setCancelled(true);
+		}
 	}
 	
 	public void onBlockPlace(BlockPlaceEvent event_) {
@@ -60,11 +63,11 @@ public class AntiGriefBlockListener extends BlockListener {
 		if (!this.plugin.access(player, "place", block.getLocation(), block.getTypeId()))
 			event_.setCancelled(true);
 	}
-	
+
 	public void onBlockBreak(BlockBreakEvent event_) {
 		Player player = event_.getPlayer();
 		Block block = event_.getBlock();
-		if (!this.plugin.access(player, "damage", block.getLocation(), block.getTypeId()))
+		if (!this.plugin.access(player, "break", block.getLocation(), block.getTypeId()))
 			event_.setCancelled(true);
 	}
 	

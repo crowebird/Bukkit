@@ -70,8 +70,6 @@ public abstract class BukkitPlugin extends JavaPlugin {
 		
 		name = name_;
 		version = version_;
-		
-		configs = new HashMap<String, Config>();
 	}
 	/**
 	 * Sets up a BukkitPlugin with permissions.
@@ -126,10 +124,15 @@ public abstract class BukkitPlugin extends JavaPlugin {
 	protected abstract void registerEvents();
 	
 	/**
-	 * Function to override that builds the configuration files
-	 * for this plugin.
+	 * Method for building the config
+	 * 
+	 * Function must be overriden in order to build the config,
+	 * it is necessary to call super.buildConfig()
+	 * to first initialize the config state.
 	 */
-	protected abstract void buildConfig();
+	protected void buildConfig() {
+		configs = new HashMap<String, Config>();
+	}
 	
 	public void sendMessage(CommandSender sender_, String msg_) {
 		msg_ = msg_.replace('&', '§');

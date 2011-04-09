@@ -110,18 +110,16 @@ public class AntiGriefZoneProtectionWorld {
 	public boolean addZone(AntiGriefZoneProtectionZone zone_) {
 		zone_.finalize();
 		String parent = zone_.getParent();
-		if (parent == null) return this.zones.add(zone_);
-		else {
-			int x = 0;
-			for (AntiGriefZoneProtectionZone zone : zones) {
-				if (zone.getName().equals(parent)) {
-					this.zones.add(x, zone_);
-					return true;
-				}
-				++x;
+		
+		int x = 0;
+		for (AntiGriefZoneProtectionZone zone : zones) {
+			if ((parent != null && zone.getName().equals(parent)) || (zone.getParent() != null && zone.getParent().equals(zone_.getName()))) {
+				this.zones.add(x, zone_);
+				return true;
 			}
+			++x;
 		}
-		return false;
+		return this.zones.add(zone_);
 	}
 	
 	public AntiGriefZoneProtectionZone getZone(String zone_) {

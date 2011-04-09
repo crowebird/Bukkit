@@ -102,17 +102,18 @@ public class AntiGriefZoneProtectionZone {
 
 		Set<String> keys = config_.getKeys();
 		for(String key : keys) {
-			String type[] = key.split("\\.");
-			
-			if (type.length >= 2) {
-				if (type[0].equals("groups"))
-					groups.add(type[1]);
-				else if (type[0].equals("users"))
-					users.add(type[1]);
+			if (key.equals("groups") || key.equals("users")) {
+				Set<String> keys2 = config_.getKeys(key);
+				for(String key2 : keys2) {
+					if (key.equals("groups"))
+						groups.add(key2);
+					else if (key.equals("users"))
+						users.add(key2);
+				}
 			}
 		}
 		
-		if (config_.hasKey("message")) message = (String) config_.getValue("message");
+		if (config_.hasKey("message.enter")) message = (String) config_.getValue("message");
 		
 		if (!users.contains(creator)) users.add(creator);
 		
@@ -137,7 +138,7 @@ public class AntiGriefZoneProtectionZone {
 	
 	private void init(String name_, String creator_, String parent_, String world_) {
 		name = name_;
-		parent = parent_;
+		parent = ((parent_.equals("null") || parent_.equals("")) ? null : parent_);
 		creator = creator_;
 		
 		config = new Config(plugin, plugin.getDataFolder().toString() + File.separator + world_ + File.separator + "zones", name, plugin.template_zone);
@@ -263,31 +264,34 @@ public class AntiGriefZoneProtectionZone {
 	public void finalize() { finalize(false); }
 	
 	public boolean access(Player player_, String node_, int item_, boolean suppress_) {
-		return plugin.getPermission("zone." + world + "." + name, player_, node_, item_);
+		String group = plugin.getGroup(player_);
+		if (users.contains(player_.getName()) || (group != null && groups.contains(group)))
+			return plugin.getPermission("zone." + world + "." + name, player_, node_, item_);
+		return false;
 	}
 	
 	
 	public boolean addGroup(String group_) {
 		groups.add(group_);
-		config.addValue("groups." + group_ + ".nodes.prevent", new ConfigArrayListString());
+		config.addValue("groups." + group_ + ".prevent_nodes", new ConfigArrayListString());
 		return true;
 	}
 	
 	public boolean addUser(String user_) {
 		users.add(user_);
-		config.addValue("users." + user_ + ".nodes.prevent", new ConfigArrayListString());
+		config.addValue("users." + user_ + ".prevent_nodes", new ConfigArrayListString());
 		return true;
 	}
 	
 	public boolean removeUser(String user_) {
 		users.remove(user_);
-		config.removeValue("users." + user_ + ".nodes.prevent");
+		config.removeKey("users." + user_);
 		return true;
 	}
 	
 	public boolean removeGroup(String group_) {
 		groups.remove(group_);
-		config.removeValue("groups." + group_ + ".nodes.prevent");
+		config.removeKey("groups." + group_);
 		return true;
 	}
 	

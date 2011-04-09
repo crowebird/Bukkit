@@ -28,14 +28,28 @@ or implied, of Michael Crowe.
 
 package com.crowebird.bukkit.plugins.AntiGrief.Listeners;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Animals;
+import org.bukkit.entity.Chicken;
+import org.bukkit.entity.Cow;
+import org.bukkit.entity.Creature;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Flying;
 import org.bukkit.entity.Ghast;
+import org.bukkit.entity.Giant;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
+import org.bukkit.entity.Pig;
+import org.bukkit.entity.PigZombie;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Slime;
 import org.bukkit.entity.Spider;
+import org.bukkit.entity.Squid;
+import org.bukkit.entity.WaterMob;
+import org.bukkit.entity.Wolf;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -55,28 +69,32 @@ public class AntiGriefEntityListener extends EntityListener {
 	public void onEntityTarget(EntityTargetEvent event_) {
 		Entity target = (Entity)event_.getTarget();
 		if (target instanceof Player){
-			if (event_.getEntity() instanceof Creeper) {
-				if (!this.plugin.access((Player)target, "creeper", target.getLocation(), true))
-					event_.setCancelled(true);
-			} else if (event_.getEntity() instanceof Zombie) {
-				if (!this.plugin.access((Player)target, "zombie", target.getLocation(), true))
-					event_.setCancelled(true);
-			} else if (event_.getEntity() instanceof Ghast) {
-				if (!this.plugin.access((Player)target, "ghast", target.getLocation(), true))
-					event_.setCancelled(true);
-			} else if (event_.getEntity() instanceof Monster) {
-				if (!this.plugin.access((Player)target, "monster", target.getLocation(), true))
-					event_.setCancelled(true);
-			} else if (event_.getEntity() instanceof Skeleton) {
-				if (!this.plugin.access((Player)target, "skeleton", target.getLocation(), true))
-					event_.setCancelled(true);
-			} else if (event_.getEntity() instanceof Spider) {
-				if (!this.plugin.access((Player)target, "spider", target.getLocation(), true))
-					event_.setCancelled(true);
-			} else if (event_.getEntity() instanceof Slime) {
-				if (!this.plugin.access((Player)target, "slime", target.getLocation(), true))
-					event_.setCancelled(true);
-			}
+			Entity e = event_.getEntity();
+			Location l = target.getLocation();
+			Player t = (Player)target;
+			
+			//Follow the tabbing for inheritance
+			if ((e instanceof LivingEntity && !this.plugin.access(t, "target_livingentity", l, true)) ||
+					(e instanceof Creature && !this.plugin.access(t, "target_creature", l, true)) ||
+						(e instanceof Animals && !this.plugin.access(t, "target_animals", l, true)) ||
+							(e instanceof Chicken && !this.plugin.access(t, "target_chicken", l, true)) ||
+							(e instanceof Cow && !this.plugin.access(t, "target_cow", l, true)) ||
+							(e instanceof Pig && !this.plugin.access(t, "target_pig", l, true)) ||
+							(e instanceof Sheep && !this.plugin.access(t, "target_sheep", l, true)) ||
+							(e instanceof Wolf && !this.plugin.access(t, "target_wolf", l, true)) ||
+						(e instanceof Monster && !this.plugin.access(t, "target_monster", l, true)) ||
+							(e instanceof Creeper && !this.plugin.access(t, "target_creeper", l, true)) ||
+							(e instanceof Giant && !this.plugin.access(t, "target_giant", l, true)) ||
+							(e instanceof Skeleton && !this.plugin.access(t, "target_skeleton", l, true)) ||
+							(e instanceof Spider && !this.plugin.access(t, "target_spider", l, true)) ||
+							(e instanceof Zombie && !this.plugin.access(t, "target_zombit", l, true)) ||
+								(e instanceof PigZombie && !this.plugin.access(t, "target_pigzombie", l, true)) ||
+						(e instanceof WaterMob && !this.plugin.access(t, "target_watermob", l, true)) ||
+							(e instanceof Squid && !this.plugin.access(t, "target_squid", l, true)) ||
+					(e instanceof Flying && !this.plugin.access(t, "target_flying", l, true)) ||
+						(e instanceof Ghast && !this.plugin.access(t, "target_ghast", l, true)) ||
+					(e instanceof Slime && !this.plugin.access(t, "target_slime", l, true)))
+				event_.setCancelled(true);
 		}
 	}
 	

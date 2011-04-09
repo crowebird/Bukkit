@@ -71,7 +71,29 @@ public class AntiGriefCommand implements CommandExecutor {
 		}
 		if (sender_ instanceof Player) {
 			Player player = (Player)sender_;
-			if (args_.length == 3) {
+			if (args_.length == 2) {
+				if (args_[1].equals("-s")) {
+					if (plugin.zoneProtection.isBuilding(player.getName())) {
+						plugin.zoneProtection.cancelZone(player.getName());
+					} else player.sendMessage("You are not creating a zone!");
+					return true;
+				} else if (args_[1].equals("-f"))  {
+					if (plugin.zoneProtection.isBuilding(player.getName())) {
+						if (plugin.zoneProtection.finishZone(player)) {
+							ItemStack i = (ItemStack)ZPtools.get(player.getName());
+							if (i.getTypeId() == 0) player.getInventory().clear(0);
+							else player.getInventory().setItem(0, i);
+							player.sendMessage("Zone created!");
+						}
+					} else 
+						player.sendMessage("You are not creating a zone!");
+					return true;
+				} else {
+					String msg = (String)this.plugin.getValue("settings", "message.command");
+					if (!msg.equals("")) player.sendMessage(msg);
+					return true;
+				}
+			} else if (args_.length == 3) {
 				if (args_[0].equals("-z")) {
 					if (plugin.hasPermission(player, "antigrief.zone.create")) {
 						String zone = args_[1];
@@ -86,27 +108,9 @@ public class AntiGriefCommand implements CommandExecutor {
 								}
 							}
 							return true;
-						} else if (args_[2].equals("-f"))  {
-							if (plugin.zoneProtection.isBuilding(player.getName())) {
-								if (plugin.zoneProtection.finishZone(player)) {
-									ItemStack i = (ItemStack)ZPtools.get(player.getName());
-									if (i.getTypeId() == 0) player.getInventory().clear(0);
-									else player.getInventory().setItem(0, i);
-									player.sendMessage("Zone created!");
-								}
-							} else 
-								player.sendMessage("You are not creating a zone!");
+						} else if (args_[2].equals("-v")) {
+							plugin.zoneProtection.visulize(player, args_[1]);
 							return true;
-						} else if (args_[1].equals("-s")) {
-							if (plugin.zoneProtection.isBuilding(player.getName())) {
-								plugin.zoneProtection.cancelZone(player.getName());
-							} else player.sendMessage("You are not creating a zone!");
-							return true;
-						} else if (args_[1].equals("-v")) {
-							if (args_.length == 3) {
-								plugin.zoneProtection.visulize(player, args_[2]);					
-								return true;
-							}
 						}
 					} else {
 						String msg = (String)this.plugin.getValue("settings", "message.command");

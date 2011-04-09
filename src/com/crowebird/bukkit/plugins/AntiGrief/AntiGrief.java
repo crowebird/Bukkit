@@ -27,8 +27,8 @@ or implied, of Michael Crowe.
 */
 
 /*
- * Using CraftBukkit 617+
- * (Bukkit 495+)
+ * Using CraftBukkit 670+
+ * (Bukkit 652+)
  * 
  * With Permissions:
  * - GroupManager 1.0 alpha 5
@@ -74,7 +74,7 @@ public class AntiGrief extends BukkitPlugin {
 	public final ConfigTemplate template_zone;
 	
 	public AntiGrief() {
-		super("AntiGrief", "1.0", true);
+		super("AntiGrief", "1.0.2", true);
 		
 		blockListener = new AntiGriefBlockListener(this);
 		playerListener = new AntiGriefPlayerListener(this);
@@ -92,24 +92,30 @@ public class AntiGrief extends BukkitPlugin {
 		template_settings.put("zones.tool", 280);
 		
 		template_world = new ConfigTemplate();
-		template_world.put("nodes.buildfalse", new ConfigArrayListString(
+		template_world.put("buildfalse.prevent_nodes", new ConfigArrayListString(
 			"damage",
 			"ignite",
-			"creeper",
+			"target_creeper",
 			"hit",
 			"use",
 			"pickup",
 			"vehicle_use",
 			"vehicle_move"
-		), "buildfalse.nodes.prevent");
-		template_world.put("nodes.buildtrue", new ConfigArrayListString(), "buildtrue.nodes.prevent");
-		template_world.put("allow.interact", new ConfigArrayListInteger(64), "buildfalse.interact.allow");
-		template_world.put("allow.item", new ConfigArrayListInteger(), "buildfalse.use.allow");
-		template_world.put("allow.block", new ConfigArrayListInteger(), "buildfalse.place.allow");
+		));
+		template_world.put("buildtrue.prevent_nodes", new ConfigArrayListString());
+		template_world.put("buildfalse.allow_nodes", new ConfigArrayListString());
+		template_world.put("buildtrue.allow_nodes", new ConfigArrayListString());
+		template_world.put("buildfalse.interact.allow", new ConfigArrayListInteger(64));
+		template_world.put("buildfalse.use.allow", new ConfigArrayListInteger());
+		template_world.put("buildfalse.place.allow", new ConfigArrayListInteger());
 		template_world.put("buildfalse.*.prevent", new ConfigArrayListInteger());
 		template_world.put("buildfalse.*.allow", new ConfigArrayListInteger());
+		template_world.put("groups.*.prevent_nodes", new ConfigArrayListString());
+		template_world.put("groups.*.allow_nodes", new ConfigArrayListString());
 		template_world.put("groups.*.*.prevent", new ConfigArrayListInteger());
 		template_world.put("groups.*.*.allow", new ConfigArrayListInteger());
+		template_world.put("users.*.prevent_nodes", new ConfigArrayListString());
+		template_world.put("users.*.allow_nodes", new ConfigArrayListString());
 		template_world.put("users.*.*.prevent", new ConfigArrayListInteger());
 		template_world.put("users.*.*.allow", new ConfigArrayListInteger());
 		
@@ -118,8 +124,12 @@ public class AntiGrief extends BukkitPlugin {
 		template_zone.put("parent", "");
 		template_zone.put("points", new ConfigArrayListString());
 		template_zone.put("message.enter", "");
+		template_zone.put("groups.*.prevent_nodes", new ConfigArrayListString());
+		template_zone.put("groups.*.allow_nodes", new ConfigArrayListString());
 		template_zone.put("groups.*.*.allow", new ConfigArrayListInteger());
 		template_zone.put("groups.*.*.prevent", new ConfigArrayListInteger());
+		template_zone.put("users.*.prevent_nodes", new ConfigArrayListString());
+		template_zone.put("users.*.allow_nodes", new ConfigArrayListString());
 		template_zone.put("users.*.*.allow", new ConfigArrayListInteger());
 		template_zone.put("users.*.*.prevent", new ConfigArrayListInteger());
 	}
@@ -131,7 +141,9 @@ public class AntiGrief extends BukkitPlugin {
 		super.onEnable();
 	}
 	
-	public void buildConfig() {		
+	public void buildConfig() {
+		super.buildConfig();
+		
 		configs.put("settings", new Config(this, getDataFolder().toString(), "settings", template_settings));
 		configs.put("default", new Config(this, getDataFolder().toString(), "default", template_world));
 
@@ -176,6 +188,7 @@ public class AntiGrief extends BukkitPlugin {
 		pm.registerEvent(Event.Type.BLOCK_DAMAGE, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_PLACE, blockListener, compile_level, this);
 		pm.registerEvent(Event.Type.BLOCK_IGNITE, blockListener, compile_level, this);
+		pm.registerEvent(Event.Type.BLOCK_BREAK, blockListener, compile_level, this);
 		
 		pm.registerEvent(Event.Type.ENTITY_TARGET, entityListener, compile_level, this);
 		pm.registerEvent(Event.Type.ENTITY_DAMAGE, entityListener, compile_level, this);
@@ -199,7 +212,7 @@ public class AntiGrief extends BukkitPlugin {
 		
 		boolean canBuild = canGroupBuild(player_, group);
 		
-		int ca = checkAccess(config_, node_, item_, canBuild);
+		int ca = checkAccess(config_, canBuild ? "buildtrue" : "buildfalse", node_, item_);
 		if (ca != -1) permission = (ca == 1 ? true : false);
 		
 		ca = checkAccess(config_, "groups." + group, node_, item_);
@@ -226,9 +239,8 @@ public class AntiGrief extends BukkitPlugin {
 			} catch (AntiGriefZoneProtectionException ex) {  }
 		}
 		
-		if (!zoned) {			
+		if (!zoned) 	
 			permission = getPermission("world." + player_.getWorld().getName(), player_, node_, item_);
-		}
 		
 		if (!permission && !supress_) {
 			int delay = (Integer) getValue("settings", "message.delay");
@@ -257,12 +269,15 @@ public class AntiGrief extends BukkitPlugin {
 	
 	@SuppressWarnings("unchecked")
 	private int checkAccess(String config_, String path_, String node_, int item_) {
-		boolean prevent_node = hasValue(config_, path_ + ".nodes.prevent", node_, "default");
-		boolean allow_node = hasValue(config_, path_ + ".nodes.allow", node_, "default");
+		boolean prevent_node = hasValue(config_, path_ + ".prevent_nodes", node_, "default");
+		boolean allow_node = hasValue(config_, path_ + ".allow_nodes", node_, "default");
 		if (allow_node)
 			return 1;
 		if (prevent_node)
 			return 0;
+		
+		if (item_ == -1)
+			return -1;
 		
 		ArrayList<Integer> prevent_item = (ArrayList<Integer>) getValue(config_, path_ + "." + node_ + ".prevent", "default");
 		ArrayList<Integer> allow_item = (ArrayList<Integer>) getValue(config_, path_ + "." + node_ + ".allow", "default");
@@ -291,5 +306,4 @@ public class AntiGrief extends BukkitPlugin {
 			return 0;
 		return -1;
 	}
-	private int checkAccess(String config_, String node_, int item_, boolean canBuild_) { return checkAccess(config_, canBuild_ ? "buildtrue" : "buildfalse", node_, item_); }
 }

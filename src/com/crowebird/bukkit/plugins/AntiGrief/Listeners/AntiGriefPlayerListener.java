@@ -51,10 +51,19 @@ public class AntiGriefPlayerListener extends PlayerListener {
 	
 	public void onPlayerInteract(PlayerInteractEvent event_) {
 		Player player = event_.getPlayer();
-		//String name = player.getName();
+		String name = player.getName();
 		Block block = event_.getClickedBlock();
 		
+		if (event_.getAction() == Action.RIGHT_CLICK_AIR ||
+				event_.getAction() == Action.RIGHT_CLICK_BLOCK) {
+			if (event_.hasItem() && !event_.isBlockInHand()) {
+				if (!plugin.access(player, "use", player.getLocation(), event_.getItem().getTypeId()))
+					event_.setCancelled(true);
+			}
+		}
+		
 		if (event_.getAction() == Action.RIGHT_CLICK_BLOCK) {
+			
 			Location l = block.getLocation();
 			BlockFace d = event_.getBlockFace();
 			Material type = block.getType();
@@ -75,29 +84,28 @@ public class AntiGriefPlayerListener extends PlayerListener {
 				if (d == BlockFace.EAST) --z;
 			}
 			
-			//if (plugin.zoneProtection.isBuilding(name) && player.getItemInHand().getTypeId() == (Integer)plugin.getValue("settings", "zones.tool")) {
-			//	plugin.zoneProtection.addPoint(name, x, y, z);
-			//	player.sendMessage("Point added!");
-			//}
+			if (plugin.zoneProtection.isBuilding(name) && player.getItemInHand().getTypeId() == (Integer)plugin.getValue("settings", "zones.tool")) {
+				plugin.zoneProtection.addPoint(name, x, y, z);
+				player.sendMessage("Point added!");
+			}
 		}
 		
-		if (event_.getAction() == Action.RIGHT_CLICK_BLOCK ||
-				(event_.getAction() == Action.LEFT_CLICK_BLOCK && block.getType() == Material.WOOD_DOOR)) {
-			
-			if (!plugin.access(player, "interact", block.getLocation(), block.getTypeId()))
-				event_.setCancelled(true);
+		try {
+			Material t = block.getType();
+			if (event_.getAction() == Action.RIGHT_CLICK_BLOCK ||
+				(event_.getAction() == Action.LEFT_CLICK_BLOCK && t == Material.WOODEN_DOOR)) {
+				
+				if (t == Material.WOODEN_DOOR ||
+						t == Material.CHEST ||
+						t == Material.STONE_BUTTON) {
+					if (!plugin.access(player, "interact", block.getLocation(), block.getTypeId()))
+						event_.setCancelled(true);
+				}
+			}
+		} catch (Exception ex) {
+			//Usually fails if for some reason material cannot be determined
 		}
 	}
-	
-/*
-	public void onPlayerItem(PlayerItemEvent event_) {
-		ItemStack item = event_.getItem();
-		Player player = event_.getPlayer();
-		if (!this.plugin.access(player, "player.item.use", player.getLocation(), item.getTypeId()))
-			event_.setCancelled(true);
-	}
-	*/
-
 	
 	public void onPlayerPickupItem(PlayerPickupItemEvent event_ ) {
 		Item item = event_.getItem();
