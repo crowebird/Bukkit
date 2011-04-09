@@ -157,6 +157,13 @@ public abstract class BukkitPlugin extends JavaPlugin {
 		return config;
 	}
 	
+	public boolean hasKey(String config_, String path_, String alternative_config_) {
+		Config config = getConfig(config_, alternative_config_);
+		if (config == null) return false;
+		return config.hasKey(path_);
+	}
+	public boolean hasKey(String config_, String path_) { return hasKey(config_, path_, ""); }
+	
 	/**
 	 * Gets the value from the configuration file config_ at the specified
 	 * key path path_, if specified, will check

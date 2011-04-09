@@ -70,7 +70,7 @@ public class AntiGriefVehicleListener extends VehicleListener {
 		Entity attacker = event_.getAttacker();
 		if (attacker instanceof Player) {
 			Vehicle vehicle = event_.getVehicle();
-			if (!this.plugin.access((Player)attacker, "damage", vehicle.getLocation())) 
+			if (!this.plugin.access((Player)attacker, "break", vehicle.getLocation())) 
 				event_.setCancelled(true);
 		}
 	}
