@@ -112,7 +112,8 @@ public class ConfigNode {
 	}
 	
 	public Object getValue(String path_) {
-		if (path_.equals("")) return value;
+		if (path_.equals(""))
+			return value;
 		
 		int index = path_.indexOf(".");
 		String key;
@@ -123,6 +124,7 @@ public class ConfigNode {
 			key = path_.substring(0, index);
 			path_ = path_.substring(index + 1);
 		}
+		
 		if (!children.containsKey(key)) return null;
 		return children.get(key).getValue(path_);
 	}

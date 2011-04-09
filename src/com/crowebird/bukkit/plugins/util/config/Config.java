@@ -142,7 +142,6 @@ public class Config extends ConfigNode {
 				//if (value != null) plugin.log(Level.WARNING, "Unexpected value for " + k + " [" + file_ + "], using default.");
 				value = expected;
 			}
-			
 			addValue(key, value);
 		}
 	}
