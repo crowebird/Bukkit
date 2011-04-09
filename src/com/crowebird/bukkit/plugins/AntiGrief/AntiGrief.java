@@ -93,10 +93,10 @@ public class AntiGrief extends BukkitPlugin {
 		
 		template_world = new ConfigTemplate();
 		template_world.put("buildfalse.prevent_nodes", new ConfigArrayListString(
-			"damage",
+			"break",
 			"ignite",
 			"target_creeper",
-			"hit",
+			"attack",
 			"use",
 			"pickup",
 			"vehicle_use",

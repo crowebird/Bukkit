@@ -95,7 +95,7 @@ public class AntiGriefCommand implements CommandExecutor {
 				}
 			} else if (args_.length == 3) {
 				if (args_[0].equals("-z")) {
-					if (plugin.hasPermission(player, "antigrief.zone.create")) {
+					if (plugin.hasPermission(player, "antigrief.zone")) {
 						String zone = args_[1];
 						if (args_[2].equals("-c")) {
 							if (plugin.zoneProtection.isBuilding(player.getName()))
@@ -120,7 +120,7 @@ public class AntiGriefCommand implements CommandExecutor {
 				}
 			} else if (args_.length == 4) {
 				if (args_[0].equals("-z")) {
-					if (plugin.hasPermission(player, "antigrief.zone.create")) {
+					if (plugin.hasPermission(player, "antigrief.zone")) {
 						if (args_[2].equals("-au")) {
 							plugin.zoneProtection.addUser(player, args_[1], args_[3]);
 							return true;

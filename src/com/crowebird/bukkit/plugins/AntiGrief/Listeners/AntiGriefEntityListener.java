@@ -87,7 +87,7 @@ public class AntiGriefEntityListener extends EntityListener {
 							(e instanceof Giant && !this.plugin.access(t, "target_giant", l, true)) ||
 							(e instanceof Skeleton && !this.plugin.access(t, "target_skeleton", l, true)) ||
 							(e instanceof Spider && !this.plugin.access(t, "target_spider", l, true)) ||
-							(e instanceof Zombie && !this.plugin.access(t, "target_zombit", l, true)) ||
+							(e instanceof Zombie && !this.plugin.access(t, "target_zombie", l, true)) ||
 								(e instanceof PigZombie && !this.plugin.access(t, "target_pigzombie", l, true)) ||
 						(e instanceof WaterMob && !this.plugin.access(t, "target_watermob", l, true)) ||
 							(e instanceof Squid && !this.plugin.access(t, "target_squid", l, true)) ||
@@ -104,12 +104,12 @@ public class AntiGriefEntityListener extends EntityListener {
 			EntityDamageByEntityEvent edbe = (EntityDamageByEntityEvent) event_;
 			Entity damager = edbe.getDamager();
 			if (damager instanceof Player) {
-				if (!this.plugin.access((Player)damager, "hit", damager.getLocation()))
+				if (!this.plugin.access((Player)damager, "attack", damager.getLocation()))
 					event_.setCancelled(true);
 			}
 		}
 		if (entity instanceof Player) {
-			if (!this.plugin.access((Player)entity, event_.getCause().toString().toLowerCase(), entity.getLocation()))
+			if (!this.plugin.access((Player)entity, "take_" + event_.getCause().toString().toLowerCase(), entity.getLocation()))
 				event_.setCancelled(true);
 		}
 	}

@@ -138,7 +138,7 @@ public class AntiGriefZoneProtectionZone {
 	
 	private void init(String name_, String creator_, String parent_, String world_) {
 		name = name_;
-		parent = ((parent_.equals("null") || parent_.equals("")) ? null : parent_);
+		parent = ((parent == null || parent_.equals("null") || parent_.equals("")) ? null : parent_);
 		creator = creator_;
 		
 		config = new Config(plugin, plugin.getDataFolder().toString() + File.separator + world_ + File.separator + "zones", name, plugin.template_zone);
